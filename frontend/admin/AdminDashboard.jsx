@@ -1,0 +1,617 @@
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useLang } from "../context/LangContext";
+import api from "../api";
+import { ORDER_STATUS } from "../../constants/orderStatus";
+import Button from "../components/common/Button";
+import { motion } from "framer-motion";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
+import { Menu, Calendar } from "lucide-react";
+import SideMenu from "../layouts/SideMenu";
+
+/** Utils **/
+const ILS = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 2 });
+const toYMD = (d) => {
+  try {
+    const dt = typeof d === "string" ? new Date(d) : d;
+    return new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+};
+const addDays = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+};
+
+export default function AdminDashboard() {
+  // data
+  const [dashboardData, setDashboardData] = useState(null);
+  const [error, setError] = useState("");
+  const [isAuthError, setIsAuthError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // sidebar (mobile)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // filters
+  const todayYMD = toYMD(new Date());
+  const [selectedDate, setSelectedDate] = useState(todayYMD);
+  const [period, setPeriod] = useState(() => {
+    const to = new Date();
+    const from = addDays(to, -29); // last 30 days
+    return { from: toYMD(from), to: toYMD(to) };
+  });
+
+  const selectedDateLabel = useMemo(() => {
+    try {
+      return new Date(selectedDate).toLocaleDateString("he-IL", { year: "numeric", month: "2-digit", day: "2-digit" });
+    } catch {
+      return selectedDate;
+    }
+  }, [selectedDate]);
+
+  // revenue view
+  const [revenueView, setRevenueView] = useState("year"); // "year" | "week" | "day"
+  const { lang, t } = useLang();
+  const resolveProductName = (p) =>
+    lang === "en" ? p?.name_en ?? p?.name : p?.name_he ?? p?.name;
+
+  /** Fetch **/
+  const fetchDashboard = useCallback(async (signal) => {
+    try {
+      setIsLoading(true);
+      setError("");
+      setIsAuthError(false);
+      const token = localStorage.getItem("token");
+      const res = await api.get("/api/admin/dashboard", { headers: { Authorization: `Bearer ${token}` }, signal });
+      const data = res?.data ?? {};
+
+      data.products = Array.isArray(data.products) ? data.products : [];
+      data.orders = Array.isArray(data.orders) ? data.orders : [];
+      data.topCustomers = Array.isArray(data.topCustomers) ? data.topCustomers : [];
+      data.hotProducts = Array.isArray(data.hotProducts) ? data.hotProducts : [];
+      data.coldProducts = Array.isArray(data.coldProducts) ? data.coldProducts : [];
+
+      setDashboardData(data);
+    } catch (err) {
+      if (
+        err?.name !== "CanceledError" &&
+        err?.name !== "AbortError" &&
+        err?.code !== "ERR_CANCELED" &&
+        err?.message !== "canceled"
+      ) {
+        console.error("Error fetching admin data:", err);
+        const token = localStorage.getItem("token");
+        const message = (err?.message || "").toLowerCase();
+        const authError =
+          !token ||
+          message.includes("unauthorized") ||
+          message.includes("forbidden") ||
+          message.includes("authentication") ||
+          message.includes("token");
+        setIsAuthError(authError);
+        setError(
+          authError
+            ? t({ ar: "تم تسجيل خروجك. يرجى تسجيل الدخول.", he: "נותקת. אנא התחבר/י מחדש." })
+            : t({ ar: "خطأ في تحميل لوحة التحكم", he: "שגיאה בטעינת לוח הבקרה" })
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchDashboard(controller.signal);
+    return () => controller.abort();
+  }, [fetchDashboard, selectedDate, period]);
+
+  /** Derived helpers **/
+  const ordersInPeriod = useMemo(() => {
+    if (!dashboardData?.orders) return [];
+    const from = period.from;
+    const to = period.to;
+    return dashboardData.orders.filter((o) => {
+      // keep only completed orders in the period (matches your current logic)
+      if (o.status !== ORDER_STATUS.DONE) return false;
+      const ymd = toYMD(o?.createdAt);
+      return ymd >= from && ymd <= to;
+    });
+  }, [dashboardData, period]);
+
+  /** KPIs (daily) **/
+  const daily = useMemo(() => {
+    const day = selectedDate;
+    const orders = dashboardData?.orders ?? [];
+    const isDay = (o) => toYMD(o?.createdAt) === day;
+    const ordersToday = orders.filter(isDay);
+    const delivered = ordersToday.filter((o) => o?.status === ORDER_STATUS.DONE);
+    const canceled = ordersToday.filter((o) => o?.status === ORDER_STATUS.CANCELED);
+    const revenue = delivered.reduce((sum, o) => sum + (Number(o?.totalPrice) || 0), 0);
+    return {
+      totalOrders: ordersToday.length,
+      delivered: delivered.length,
+      canceled: canceled.length,
+      revenue,
+    };
+  }, [dashboardData, selectedDate]);
+
+  /** Charts data (period) **/
+  // ✅ Completed orders per weekday (count, not revenue)
+  const weeklyBar = useMemo(() => {
+    const labels = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"]; // Sunday..Saturday
+    const counts = new Array(7).fill(0);
+    (ordersInPeriod ?? []).forEach((o) => {
+      const d = new Date(o.createdAt);
+      const idx = d.getDay(); // 0..6
+      counts[idx] += 1; // count every completed order created that day
+    });
+    return labels.map((name, i) => ({ name, count: counts[i] }));
+  }, [ordersInPeriod]);
+
+  const monthlyRevenue = useMemo(() => {
+    const map = new Map();
+    (dashboardData?.orders ?? []).forEach((o) => {
+      if (o.status !== ORDER_STATUS.DONE) return;
+      const d = new Date(o.createdAt);
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const key = `${y}-${m}`;
+      const label = d.toLocaleDateString("he-IL", { month: "short" });
+      const cur = map.get(key) || { name: label, revenue: 0, year: y, month: m };
+      cur.revenue += Number(o?.totalPrice) || 0;
+      map.set(key, cur);
+    });
+    // ensure 12 months exist for current & last year
+    const baseDate = new Date(selectedDate);
+    const currentYear = baseDate.getFullYear();
+    const years = [currentYear - 1, currentYear];
+    const filled = [];
+    years.forEach((y) => {
+      for (let m = 0; m < 12; m++) {
+        const k = `${y}-${m}`;
+        const exist = map.get(k) || {
+          name: new Date(y, m, 1).toLocaleDateString("he-IL", { month: "short" }),
+          revenue: 0,
+          year: y,
+          month: m,
+        };
+        filled.push(exist);
+      }
+    });
+    return filled;
+  }, [dashboardData, selectedDate]);
+
+  const monthlyCompare = useMemo(() => {
+    const baseDate = new Date(selectedDate);
+    const currentYear = baseDate.getFullYear();
+    const lastYear = currentYear - 1;
+    const months = Array.from({ length: 12 }, (_, m) => new Date(currentYear, m, 1).toLocaleDateString("he-IL", { month: "short" }));
+
+    const cur = new Array(12).fill(0);
+    const prev = new Array(12).fill(0);
+    monthlyRevenue.forEach((row) => {
+      if (row.year === currentYear) cur[row.month] += row.revenue;
+      if (row.year === lastYear) prev[row.month] += row.revenue;
+    });
+    return months.map((name, i) => ({ name, current: cur[i], last: prev[i] }));
+  }, [monthlyRevenue, selectedDate]);
+
+  const weeklyCompare = useMemo(() => {
+    const orders = (dashboardData?.orders ?? []).filter((o) => o.status === ORDER_STATUS.DONE);
+    const base = new Date(selectedDate);
+    const day = base.getDay(); // 0=Sun
+    const startCurrent = new Date(base);
+    startCurrent.setDate(base.getDate() - day); // Sunday
+    const startPrev = addDays(startCurrent, -7);
+
+    const labels = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ש'"];
+    const cur = new Array(7).fill(0);
+    const prev = new Array(7).fill(0);
+
+    orders.forEach((o) => {
+      const d = new Date(o.createdAt);
+      const bucket = (arr, start) => {
+        const diff = Math.floor((d - start) / 86400000);
+        if (diff >= 0 && diff < 7) arr[new Date(d).getDay()] += Number(o.totalPrice) || 0;
+      };
+      bucket(cur, startCurrent);
+      bucket(prev, startPrev);
+    });
+
+    return labels.map((name, i) => ({ name, current: cur[i], last: prev[i] }));
+  }, [dashboardData, selectedDate]);
+  const dateRef = useRef(null);
+  const openCalendar = () => {
+    const el = dateRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      // Chrome/Edge
+      el.showPicker();
+    } else {
+      // Safari/Firefox fallback
+      el.focus();
+      el.click();
+    }
+  };
+
+  const hourlyRevenue = useMemo(() => {
+    const hours = Array.from({ length: 24 }, (_, h) => ({ name: String(h).padStart(2, "0"), revenue: 0 }));
+    (dashboardData?.orders ?? []).forEach((o) => {
+      if (o.status !== ORDER_STATUS.DONE) return;
+      if (toYMD(o.createdAt) !== selectedDate) return;
+      const h = new Date(o.createdAt).getHours();
+      if (h >= 0 && h < 24) hours[h].revenue += Number(o.totalPrice) || 0;
+    });
+    return hours;
+  }, [dashboardData, selectedDate]);
+
+  /** Simple states **/
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0f141c] text-white flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <p className="text-red-400 mb-4">{error}</p>
+          <Button
+            title={isAuthError ? t({ ar: "تسجيل الدخول", he: "התחברות" }) : t({ ar: "حاول مرة أخرى", he: "נסה שוב" })}
+            onClick={() => (isAuthError ? (window.location.href = "/login") : fetchDashboard())}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !dashboardData) {
+    return <div className="min-h-screen bg-[#0f141c] text-[#aab2c4] flex items-center justify-center px-4">{t({ ar: "جارٍ تحميل البيانات...", he: "טוען נתונים…" })}</div>;
+  }
+
+  const { hotProducts = [], coldProducts = [] } = dashboardData;
+
+  return (
+    <div dir="rtl" className="min-h-screen bg-[#0f141c] text-white flex">
+      {/* Sidebar (desktop) */}
+      <div className="hidden md:block">
+        <SideMenu
+          logoSrc="/ChatGPT%20Image%20Feb%209,%202026,%2012_12_04%20PM.png"
+          brand="Adal Health"
+        />
+      </div>
+
+      {/* Mobile overlay + drawer (render only when open) */}
+      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+      {isSidebarOpen && (
+        <div className="md:hidden">
+          <SideMenu
+            onClose={() => setIsSidebarOpen(false)}
+            logoSrc="/ChatGPT%20Image%20Feb%209,%202026,%2012_12_04%20PM.png"
+            brand="Adal Health"
+          />
+        </div>
+      )}
+
+      {/* Main area */}
+      <div className="flex-1 flex flex-col">
+        {/* Top Bar */}
+        <div className="sticky top-0 z-20 bg-[#11131a] border-b border-white/10">
+          <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-3">
+            <button
+              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="פתח תפריט"
+            >
+              <Menu size={20} />
+            </button>
+
+            <div className="min-w-0">
+              <h2 className="text-[18px] font-bold tracking-tight truncate">{t({ ar: "لوحة التحكم", he: "לוח בקרה" })}</h2>
+              <p className="text-[11px] text-[#8b93a7] mt-1">{t({ ar: "مرحبًا بك في لوحة الإدارة", he: "ברוך/ה הבא/ה למערכת הניהול" })}</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {/* Date picker button (opens native calendar) */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={openCalendar}
+                  className="flex items-center gap-2 bg-[#111824] border border-[#1f2a36] rounded-lg px-3 py-2.5 h-11 min-w-[220px] text-[13px] text-[#c7cfdd] hover:bg-white/5 transition"
+                  aria-label="בחר תאריך"
+                >
+                  <Calendar size={16} className="opacity-80" />
+                  <span className="shrink-0">{t({ ar: "تاريخ اليوم:", he: "תאריך יומי:" })}</span>
+                  <span className="truncate text-white/90">{selectedDateLabel}</span>
+                </button>
+
+                {/* Real input (hidden but functional) */}
+                <input
+                  ref={dateRef}
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="absolute inset-0 opacity-0 pointer-events-none -z-10"
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <main className="px-4 sm:px-6 pb-8">
+          {/* KPI Cards */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+          >
+            <KPI
+              icon="🧾"
+              title={t({ ar: "الإجمالي", he: "סה" })}
+              desc={t({ ar: "عدد الطلبات اليوم", he: "כמות הזמנות היום" })}
+              value={String(daily.totalOrders)}
+              trend="+4.1% (30 ימים)"
+              trendUp
+            />
+            <KPI
+              icon="📦"
+              title={t({ ar: "تم التسليم", he: "סופקו" })}
+              desc={t({ ar: "طلبات تم تسليمها", he: "הזמנות שנמסרו" })}
+              value={String(daily.delivered)}
+              trend="+3.2% (30 ימים)"
+              trendUp
+            />
+            <KPI
+              icon="✖️"
+              title={t({ ar: "تم الإلغاء", he: "בוטלו" })}
+              desc={t({ ar: "طلبات ملغاة", he: "הזמנות שבוטלו" })}
+              value={String(daily.canceled)}
+              trend="-2.3% (30 ימים)"
+            />
+            <KPI
+              icon="₪"
+              title={t({ ar: "الإيراد", he: "הכנסה" })}
+              desc={t({ ar: `إيراد ${selectedDate}`, he: `הכנסה ל-${selectedDate}` })}
+              value={ILS.format(daily.revenue)}
+              trend="-12.0% (30 ימים)"
+            />
+          </motion.div>
+
+          {/* Weekly Orders Bar (COUNT) — full width like the revenue section */}
+          <div className="mt-4 grid grid-cols-1">
+            <SectionCard
+              title={t({ ar: "عدد الطلبات حسب أيام الأسبوع", he: "כמות הזמנות לפי יום בשבוע (בטווח)" })}
+              subtitle={t({ ar: "عدد الطلبات المكتملة لكل يوم", he: "מספר הזמנות שבוצעו בכל יום" })}
+            >
+              <div className="mt-2 h-[220px] sm:h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyBar} barCategoryGap={8}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#223047" />
+                    <XAxis dataKey="name" stroke="#8b93a7" tick={{ fontSize: 11 }} />
+                    <YAxis stroke="#8b93a7" tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip
+                      formatter={(v) => [`${v}`, t({ ar: "طلبات", he: "הזמנות" })]}
+                      labelStyle={{ color: "#fff" }}
+                      contentStyle={{ background: "#0f141c", border: "1px solid #1f2a36", borderRadius: 8 }}
+                    />
+                    <Bar dataKey="count" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* Revenue views */}
+          <div className="mt-4 grid grid-cols-1">
+            <SectionCard
+              title={t({ ar: "الإيرادات حسب الفترة", he: "הכנסה לפי טווח" })}
+              rightBadge={
+                <div className="flex items-center gap-1 bg-[#0f141c] border border-[#1f2a36] rounded-lg p-1 text-[11px]">
+                  <TabButton active={revenueView === "year"} onClick={() => setRevenueView("year")}>
+                    {t({ ar: "مقارنة بالسنة الماضية", he: "השוואה לשנה קודמת" })}
+                  </TabButton>
+                  <TabButton active={revenueView === "week"} onClick={() => setRevenueView("week")}>
+                    {t({ ar: "مقارنة أسبوعية", he: "השוואת שבוע" })}
+                  </TabButton>
+                  <TabButton active={revenueView === "day"} onClick={() => setRevenueView("day")}>
+                    {t({ ar: "بالساعة (يومي)", he: "שעתי (יומי)" })}
+                  </TabButton>
+                </div>
+              }
+            >
+              {revenueView === "year" && (
+                <div className="mt-2 h-[260px] sm:h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyCompare} margin={{ left: 8, right: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#223047" />
+                      <XAxis dataKey="name" stroke="#8b93a7" tick={{ fontSize: 11 }} />
+                      <YAxis stroke="#8b93a7" tick={{ fontSize: 11 }} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                      <Tooltip
+                        formatter={(v) => ILS.format(v)}
+                        contentStyle={{ background: "#0f141c", border: "1px solid #1f2a36", borderRadius: 8 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="current"
+                        name={t({ ar: "السنة الحالية", he: "שנה נוכחית" })}
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        activeDot={{ r: 4 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="last"
+                        name={t({ ar: "السنة الماضية", he: "שנה קודמת" })}
+                        stroke="#60a5fa"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        activeDot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {revenueView === "week" && (
+                <div className="mt-2 h-[260px] sm:h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={weeklyCompare} margin={{ left: 8, right: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#223047" />
+                      <XAxis dataKey="name" stroke="#8b93a7" tick={{ fontSize: 11 }} />
+                      <YAxis stroke="#8b93a7" tick={{ fontSize: 11 }} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                      <Tooltip
+                        formatter={(v) => ILS.format(v)}
+                        contentStyle={{ background: "#0f141c", border: "1px solid #1f2a36", borderRadius: 8 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="current"
+                        name={t({ ar: "الأسبوع الحالي", he: "שבוע נוכחי" })}
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        activeDot={{ r: 4 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="last"
+                        name={t({ ar: "الأسبوع السابق", he: "שבוע קודם" })}
+                        stroke="#60a5fa"
+                        strokeWidth={2}
+                        dot={{ r: 2 }}
+                        activeDot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {revenueView === "day" && (
+                <div className="mt-2 h-[260px] sm:h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={hourlyRevenue} margin={{ left: 8, right: 8 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#223047" />
+                      <XAxis dataKey="name" stroke="#8b93a7" tick={{ fontSize: 10 }} />
+                      <YAxis stroke="#8b93a7" tick={{ fontSize: 11 }} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                      <Tooltip
+                        formatter={(v) => ILS.format(v)}
+                        contentStyle={{ background: "#0f141c", border: "1px solid #1f2a36", borderRadius: 8 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="revenue"
+                        name={t({ ar: `إيرادات (${selectedDate})`, he: `הכנסות (${selectedDate})` })}
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={{ r: 1.5 }}
+                        activeDot={{ r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </SectionCard>
+          </div>
+
+          {/* Hot/Cold products */}
+          <div className="mt-6 grid grid-cols-1 gap-4">
+            <SectionCard title={t({ ar: "🔥 منتجات الأكثر مبيعًا", he: "🔥 מוצרים חמים" })}>
+              {hotProducts.length === 0 ? (
+                <EmptyState text={t({ ar: "لا توجد منتجات ساخنة.", he: "אין מוצרים חמים." })} />
+              ) : (
+                <ul className="divide-y divide-[#1f2a36]">
+                  {hotProducts.map((p, i) => (
+                    <li key={p?.id || p?._id || p?.name || i} className="flex justify-between py-2">
+                      <span className="text-red-400 font-medium truncate pr-1">{resolveProductName(p) || "ללא שם"}</span>
+                      <span className="text-[12px] text-[#aab2c4]">{p?.orders ?? 0} {t({ ar: "طلبات", he: "הזמנות" })}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionCard>
+
+            <SectionCard title={t({ ar: "❄️ منتجات الأقل مبيعًا", he: "❄️ מוצרים קרים" })}>
+              {coldProducts.length === 0 ? (
+                <EmptyState text={t({ ar: "لا توجد منتجات باردة.", he: "אין מוצרים קרים." })} />
+              ) : (
+                <ul className="divide-y divide-[#1f2a36]">
+                  {coldProducts.map((p, i) => (
+                    <li key={p?.id || p?._id || p?.name || i} className="flex justify-between py-2">
+                      <span className="text-blue-400 font-medium truncate pr-1">{resolveProductName(p) || "ללא שם"}</span>
+                      <span className="text-[12px] text-[#aab2c4]">{p?.orders ?? 0} {t({ ar: "طلبات", he: "הזמנות" })}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </SectionCard>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/** Reusable section shell **/
+function SectionCard({ title, subtitle, rightBadge, className = "", children }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.25 }}
+      className={`bg-[#111824] border border-[#1f2a36] rounded-xl p-3 sm:p-4 ${className}`}
+    >
+      <div className="flex items-start sm:items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-[15px] sm:text-[16px] font-bold truncate">{title}</h3>
+          {subtitle && <p className="text-[11px] text-[#8b93a7] mt-0.5">{subtitle}</p>}
+        </div>
+        {rightBadge && <div className="shrink-0">{rightBadge}</div>}
+      </div>
+      {children}
+    </motion.section>
+  );
+}
+
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-2.5 py-1 rounded-md transition-colors ${active ? "bg-[#14b98a] text-white" : "text-[#c7cfdd] hover:bg-white/5"}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Small UI atoms **/
+function KPI({ icon, title, desc, value, trend, trendUp }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="bg-[#111824] border border-[#1f2a36] rounded-xl p-3 sm:p-4"
+    >
+      <div className="flex items-center justify-between">
+        <div className="w-9 h-9 rounded-lg bg-white/5 grid place-items-center text-white/90 text-base">{icon}</div>
+        <span className="text-[#6f788c]">⋮</span>
+      </div>
+      <div className="mt-3">
+        <p className="text-[20px] sm:text-[22px] font-extrabold leading-none">{value}</p>
+        <p className="text-[11px] text-[#8b93a7] mt-0.5">
+          {title} · {desc}
+        </p>
+        <p className={`text-[10px] mt-1 ${trendUp ? "text-[#22c55e]" : "text-[#ef4444]"}`}>{trend}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+function EmptyState({ text }) {
+  return <div className="text-[#8b93a7] text-sm py-6 text-center">{text}</div>;
+}

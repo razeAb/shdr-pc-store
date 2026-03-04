@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960" role="img" aria-label="Game cover placeholder">
+  <defs>
+    <linearGradient id="g3" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#19202b" />
+      <stop offset="100%" stop-color="#7e5bef" />
+    </linearGradient>
+  </defs>
+  <rect width="720" height="960" fill="url(#g3)" />
+  <circle cx="180" cy="220" r="130" fill="#f25c4c" opacity="0.75" />
+  <circle cx="520" cy="620" r="170" fill="#f4c95d" opacity="0.7" />
+  <text x="110" y="515" fill="#f7f4ea" font-family="Arial, sans-serif" font-size="38">NEXT GEN</text>
+</svg>
