@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useOutletContext } from "react-router-dom";
-import products from "../data/products.json";
+import { useProducts } from "../context/ProductsContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 
@@ -8,7 +8,25 @@ export default function Product() {
   const { slug } = useParams();
   const { onToast } = useOutletContext();
   const { addItem } = useCart();
+  const { products, loading, error } = useProducts();
   const product = products.find((item) => item.slug === slug);
+
+  if (loading) {
+    return (
+      <section className="product-detail">
+        <h1>Loading product…</h1>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="product-detail">
+        <h1>Product not available</h1>
+        <p>Try again later.</p>
+      </section>
+    );
+  }
 
   if (!product) {
     return (

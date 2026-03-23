@@ -11,6 +11,7 @@ import Account from "./routes/Account.jsx";
 import Login from "./routes/Login.jsx";
 import Signup from "./routes/Signup.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
+import { ProductsProvider } from "./context/ProductsContext.jsx";
 
 function AppLayout({ onToast }) {
   return (
@@ -41,18 +42,20 @@ export default function App() {
 
   return (
     <>
-      <Routes>
-        <Route element={<AppLayout onToast={showToast} />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/product/:slug" element={<Product />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/account" element={<Account />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-        </Route>
-        <Route path="/admin/*" element={<AdminApp />} />
-      </Routes>
+      <ProductsProvider>
+        <Routes>
+          <Route element={<AppLayout onToast={showToast} />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/product/:slug" element={<Product />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+          </Route>
+          <Route path="/admin/*" element={<AdminApp />} />
+        </Routes>
+      </ProductsProvider>
       <Toast message={toast.message} isVisible={toast.isVisible} />
     </>
   );

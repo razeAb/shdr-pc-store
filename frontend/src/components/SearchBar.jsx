@@ -21,7 +21,8 @@ export default function SearchBar({ id, products, isOpen, onRequestClose }) {
         const inTitle = product.title.toLowerCase().includes(term);
         const inTags = (product.tags || []).some((tag) => tag.toLowerCase().includes(term));
         const inSku = product.sku?.toLowerCase().includes(term);
-        return inTitle || inTags || inSku;
+        const inCategory = product.category?.toLowerCase().includes(term);
+        return inTitle || inTags || inSku || inCategory;
       })
       .slice(0, MAX_SUGGESTIONS);
   }, [products, query]);

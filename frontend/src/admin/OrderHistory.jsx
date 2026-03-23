@@ -21,9 +21,9 @@ const translatePaymentMethod = (method) =>
       : method === "Bit"
         ? "ביט"
         : method === "GOOGLE_PAY"
-          ? "Google Pay"
+          ? "גוגל פיי"
           : method === "APPLE_PAY"
-            ? "Apple Pay"
+            ? "אפל פיי"
             : method || " לא ידוע";
 
 const getOrderHistory = async () => {

@@ -2,7 +2,7 @@ import { NavLink, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import SearchBar from "./SearchBar.jsx";
 import { useCart } from "../context/CartContext.jsx";
-import products from "../data/products.json";
+import { useProducts } from "../context/ProductsContext.jsx";
 
 const navItems = [
   { label: "Platforms", href: "/search" },
@@ -14,6 +14,7 @@ const navItems = [
 
 export default function Header() {
   const { items } = useCart();
+  const { products } = useProducts();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
   const cartCount = items.reduce((total, item) => total + item.qty, 0);

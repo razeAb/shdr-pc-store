@@ -219,13 +219,13 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
           />
 
-          <label className="block text-sm">{t({ ar: "SKU", he: "SKU" })}</label>
+          <label className="block text-sm">{t({ ar: "SKU", he: "מפתח סריאלי" })}</label>
           <input
             type="text"
             name="sku"
             value={form.sku}
             onChange={handleChange}
-            placeholder={t({ ar: "SKU", he: "SKU" })}
+            placeholder={t({ ar: "SKU", he: "מפתח סריאלי" })}
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
           />
 

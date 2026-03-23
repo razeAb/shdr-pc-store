@@ -1,17 +1,38 @@
 import { Link, useOutletContext } from "react-router-dom";
+import { useEffect, useState } from "react";
 import PromoBanner from "../components/PromoBanner.jsx";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import ProductGrid from "../components/ProductGrid.jsx";
 import { useCart } from "../context/CartContext.jsx";
+import api from "../api";
 
 export default function Home() {
   const { onToast } = useOutletContext();
   const { addItem } = useCart();
+  const [categories, setCategories] = useState([]);
+  const [categoriesError, setCategoriesError] = useState("");
 
   const handleAdd = (product) => {
     addItem(product);
     onToast("Added to cart");
   };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get("/api/categories", { signal: controller.signal });
+        const list = Array.isArray(res.data) ? res.data : [];
+        setCategories(list.map((item) => item.name).filter(Boolean));
+        setCategoriesError("");
+      } catch (err) {
+        if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
+        setCategoriesError(err?.message || "Failed to load categories.");
+      }
+    };
+    fetchCategories();
+    return () => controller.abort();
+  }, []);
 
   return (
     <>
@@ -44,24 +65,17 @@ export default function Home() {
             <p>Gear up with peripherals and PC essentials.</p>
           </div>
           <div className="category-grid">
-            <Link className="category-card" to="/search?q=headphones">
-              <span>Headphones</span>
-            </Link>
-            <Link className="category-card" to="/search?q=keyboards">
-              <span>Keyboards</span>
-            </Link>
-            <Link className="category-card" to="/search?q=mouse">
-              <span>Mouse</span>
-            </Link>
-            <Link className="category-card" to="/search?q=pc%20screens">
-              <span>PC Screens</span>
-            </Link>
-            <Link className="category-card" to="/search?q=controllers">
-              <span>Controllers</span>
-            </Link>
-            <Link className="category-card" to="/search?q=storage">
-              <span>Storage</span>
-            </Link>
+            {categories.length > 0 ? (
+              categories.map((name) => (
+                <Link key={name} className="category-card" to={`/search?category=${encodeURIComponent(name)}`}>
+                  <span>{name}</span>
+                </Link>
+              ))
+            ) : (
+              <div className="category-card">
+                <span>{categoriesError || "No categories yet."}</span>
+              </div>
+            )}
           </div>
         </section>
       </section>

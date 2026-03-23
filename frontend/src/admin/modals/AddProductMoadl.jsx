@@ -19,6 +19,8 @@ const AddProductModal = ({ onClose, onAdd }) => {
 
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [categories, setCategories] = useState([]);
@@ -53,7 +55,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
       };
 
       if (!payload.images?.length) {
-        throw new Error(t({ ar: "يرجى رفع صورة واحدة على الأقل.", he: "Please upload at least one photo." }));
+        throw new Error(t({ ar: "يرجى رفع صورة واحدة على الأقل.", he: "נא להעלות לפחות תמונה אחת." }));
       }
 
       const response = await api.post(`/api/products`, payload, {
@@ -63,7 +65,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
       onAdd(response.data);
       onClose();
     } catch (err) {
-      setError(err?.message || t({ ar: "فشل إضافة المنتج.", he: "Failed to add product." }));
+      setError(err?.message || t({ ar: "فشل إضافة المنتج.", he: "הוספת מוצר נכשלה." }));
       console.error(err);
     } finally {
       setLoading(false);
@@ -108,9 +110,9 @@ const AddProductModal = ({ onClose, onAdd }) => {
       setImageFiles([]);
       setVideoFiles([]);
 
-      alert(t({ ar: "✅ تم رفع الوسائط بنجاح!", he: "✅ Media uploaded successfully!" }));
+      alert(t({ ar: "✅ تم رفع الوسائط بنجاح!", he: "✅ המדיה הועלתה בהצלחה!" }));
     } catch (err) {
-      alert(t({ ar: "❌ فشل رفع الوسائط.", he: "❌ Failed to upload media." }));
+      alert(t({ ar: "❌ فشل رفع الوسائط.", he: "❌ העלאת המדיה נכשלה." }));
       console.error(err);
     }
   };
@@ -149,11 +151,57 @@ const AddProductModal = ({ onClose, onAdd }) => {
 
         <input
           name="sku"
-          placeholder={t({ ar: "SKU", he: "SKU" })}
+          placeholder={t({ ar: "Serial key", he: "מפתח סריאלי" })}
           onChange={handleChange}
           value={form.sku}
           className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 mb-3 focus:outline-none"
         />
+
+        <label className="font-semibold">{t({ ar: "روابط الصور:", he: "קישורי תמונות:" })}</label>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="url"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder={t({ ar: "الصق رابط صورة", he: "הדבק קישור לתמונה" })}
+            className="flex-1 px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const trimmed = imageUrl.trim();
+              if (!trimmed) return;
+              setForm((prev) => ({ ...prev, images: [...prev.images, trimmed] }));
+              setImageUrl("");
+            }}
+            className="px-3 py-2 rounded bg-white/10 hover:bg-white/20 text-sm"
+          >
+            {t({ ar: "أضف", he: "הוסף" })}
+          </button>
+        </div>
+
+        <label className="font-semibold">{t({ ar: "روابط الفيديو:", he: "קישורי וידאו:" })}</label>
+        <div className="flex gap-2 mb-3">
+          <input
+            type="url"
+            value={videoUrl}
+            onChange={(e) => setVideoUrl(e.target.value)}
+            placeholder={t({ ar: "الصق رابط فيديو", he: "הדבק קישור לוידאו" })}
+            className="flex-1 px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              const trimmed = videoUrl.trim();
+              if (!trimmed) return;
+              setForm((prev) => ({ ...prev, videos: [...prev.videos, trimmed] }));
+              setVideoUrl("");
+            }}
+            className="px-3 py-2 rounded bg-white/10 hover:bg-white/20 text-sm"
+          >
+            {t({ ar: "أضف", he: "הוסף" })}
+          </button>
+        </div>
 
         <label className="font-semibold">{t({ ar: "رفع الصور:", he: "העלה תמונות:" })}</label>
         <input

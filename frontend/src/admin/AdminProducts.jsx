@@ -14,7 +14,7 @@ function Spinner({ size = 40 }) {
     <div
       className="animate-spin rounded-full border-2 border-white/20 border-t-white/80"
       style={{ width: size, height: size }}
-      aria-label="Loading"
+      aria-label="טוען"
     />
   );
 }
@@ -201,7 +201,7 @@ export default function AdminProducts() {
       setCategoryList((prev) => [res.data, ...prev]);
       setCategoryName("");
     } catch (err) {
-      setCategoryError(err?.message || t({ ar: "فشل إضافة الفئة", he: "Failed to add category" }));
+      setCategoryError(err?.message || t({ ar: "فشل إضافة الفئة", he: "הוספת קטגוריה נכשלה" }));
     } finally {
       setCategorySaving(false);
     }
@@ -216,7 +216,7 @@ export default function AdminProducts() {
       });
       setCategoryList((prev) => prev.filter((cat) => cat._id !== categoryId));
     } catch (err) {
-      setCategoryError(err?.message || t({ ar: "فشل حذف الفئة", he: "Failed to delete category" }));
+      setCategoryError(err?.message || t({ ar: "فشل حذف الفئة", he: "מחיקת קטגוריה נכשלה" }));
     }
   };
 
@@ -273,11 +273,9 @@ export default function AdminProducts() {
   const handleToggleActive = async (productId, currentStatus) => {
     try {
       const token = localStorage.getItem("token");
-      await api.patch(
-        `/api/products/${productId}/toggle-active`,
-        { isActive: !currentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.patch(`/api/products/${productId}/toggle`, null, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setProducts((prev) =>
         prev.map((p) => (p._id === productId ? { ...p, isActive: !currentStatus } : p))
       );

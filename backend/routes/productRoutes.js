@@ -47,6 +47,26 @@ productRouter.get("/", async (req, res, next) => {
 });
 
 /**
+ * ADMIN: list all (active + inactive) for admin dashboard
+ * GET /api/products/admin/all
+ */
+async function listAllProducts(_req, res, next) {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 }).lean();
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * ADMIN: list all (active + inactive) for admin dashboard
+ * GET /api/products/admin/all/list
+ */
+productRouter.get("/admin/all", requireAuth, requireAdmin, listAllProducts);
+productRouter.get("/admin/all/list", requireAuth, requireAdmin, listAllProducts);
+
+/**
  * PUBLIC: get one active product
  * GET /api/products/:id
  */
@@ -59,19 +79,6 @@ productRouter.get("/:id", async (req, res, next) => {
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     res.json(product);
-  } catch (err) {
-    next(err);
-  }
-});
-
-/**
- * ADMIN: list all (active + inactive) for admin dashboard
- * GET /api/products/admin/all
- */
-productRouter.get("/admin/all/list", requireAuth, requireAdmin, async (req, res, next) => {
-  try {
-    const products = await Product.find({}).sort({ createdAt: -1 }).lean();
-    res.json(products);
   } catch (err) {
     next(err);
   }
