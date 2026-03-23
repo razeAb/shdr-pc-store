@@ -23,6 +23,8 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
   const [form, setForm] = useState(initial);
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -229,6 +231,52 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
           />
 
+          <label className="font-semibold block mt-2">{t({ ar: "روابط الصور:", he: "קישורי תמונות:" })}</label>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder={t({ ar: "الصق رابط صورة", he: "הדבק קישור לתמונה" })}
+              className="flex-1 px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = imageUrl.trim();
+                if (!trimmed) return;
+                setForm((prev) => ({ ...prev, images: [...(prev.images || []), trimmed] }));
+                setImageUrl("");
+              }}
+              className="px-3 py-2 rounded bg-white/10 hover:bg-white/20 text-sm"
+            >
+              {t({ ar: "أضف", he: "הוסף" })}
+            </button>
+          </div>
+
+          <label className="font-semibold block mt-2">{t({ ar: "روابط الفيديو:", he: "קישורי וידאו:" })}</label>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              value={videoUrl}
+              onChange={(e) => setVideoUrl(e.target.value)}
+              placeholder={t({ ar: "الصق رابط فيديو", he: "הדבק קישור לוידאו" })}
+              className="flex-1 px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const trimmed = videoUrl.trim();
+                if (!trimmed) return;
+                setForm((prev) => ({ ...prev, videos: [...(prev.videos || []), trimmed] }));
+                setVideoUrl("");
+              }}
+              className="px-3 py-2 rounded bg-white/10 hover:bg-white/20 text-sm"
+            >
+              {t({ ar: "أضف", he: "הוסף" })}
+            </button>
+          </div>
+
           <label className="font-semibold block mt-2">{t({ ar: "رفع الصور:", he: "העלה תמונות:" })}</label>
           <input
             type="file"
@@ -283,8 +331,30 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
           ) : null}
 
           {form.videos?.length ? (
-            <div className="text-xs text-white/70 mt-2">
-              {t({ ar: "الفيديوهات المرفوعة:", he: "סרטונים שהועלו:" })} {form.videos.length}
+            <div className="mt-3 space-y-2">
+              <div className="text-xs text-white/70">
+                {t({ ar: "الفيديوهات المرفوعة:", he: "סרטונים שהועלו:" })} {form.videos.length}
+              </div>
+              <div className="space-y-2">
+                {form.videos.map((src) => (
+                  <div key={src} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+                    <span className="text-[11px] text-white/70 truncate flex-1">{src}</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          videos: (prev.videos || []).filter((video) => video !== src),
+                        }))
+                      }
+                      className="bg-red-600 text-white rounded-full w-5 h-5 text-xs"
+                      aria-label={t({ ar: "إزالة", he: "הסר" })}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
 

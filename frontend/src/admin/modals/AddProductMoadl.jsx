@@ -38,10 +38,19 @@ const AddProductModal = ({ onClose, onAdd }) => {
     setError("");
     try {
       const token = localStorage.getItem("token");
+      const title = form.title.trim();
+      const price = Number(form.price);
+
+      if (!title) {
+        throw new Error(t({ ar: "اسم المنتج مطلوب.", he: "שם המוצר הוא שדה חובה." }));
+      }
+      if (!Number.isFinite(price) || price < 0) {
+        throw new Error(t({ ar: "يرجى إدخال سعر صالح.", he: "נא להזין מחיר תקין." }));
+      }
 
       const payload = {
-        title: form.title,
-        price: Number(form.price),
+        title,
+        price,
         sku: form.sku,
         category: form.category,
         isActive: form.isActive,
@@ -146,6 +155,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
           placeholder={t({ ar: "اسم المنتج", he: "שם מוצר" })}
           onChange={handleChange}
           value={form.title}
+          required
           className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 mb-3 focus:outline-none"
         />
 
@@ -235,6 +245,56 @@ const AddProductModal = ({ onClose, onAdd }) => {
           <MediaCarousel images={form.images} videos={form.videos} />
         </div>
 
+        {form.images?.length ? (
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {form.images.map((src) => (
+              <div key={src} className="relative">
+                <img src={src} alt="Preview" className="h-20 w-full rounded border border-white/10 object-cover" />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      images: (prev.images || []).filter((img) => img !== src),
+                    }))
+                  }
+                  className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 text-xs"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        {form.videos?.length ? (
+          <div className="mt-3 space-y-2">
+            <div className="text-xs text-white/70">
+              {t({ ar: "الفيديوهات المرفوعة:", he: "סרטונים שנוספו:" })} {form.videos.length}
+            </div>
+            <div className="space-y-2">
+              {form.videos.map((src) => (
+                <div key={src} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-2 py-1">
+                  <span className="text-[11px] text-white/70 truncate flex-1">{src}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        videos: (prev.videos || []).filter((video) => video !== src),
+                      }))
+                    }
+                    className="bg-red-600 text-white rounded-full w-5 h-5 text-xs"
+                    aria-label={t({ ar: "إزالة", he: "הסר" })}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <select
           name="category"
           onChange={handleChange}
@@ -255,6 +315,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
           type="number"
           onChange={handleChange}
           value={form.price}
+          required
           className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 mb-3"
         />
 

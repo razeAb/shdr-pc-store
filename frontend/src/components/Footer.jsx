@@ -59,7 +59,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <p className="footer-note">(c) 2024 SHDR Game Store. All rights reserved.</p>
+      <p className="footer-note">Made by raze. All rights reserved.</p>
     </footer>
   );
 }
