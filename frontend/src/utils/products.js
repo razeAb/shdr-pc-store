@@ -18,6 +18,9 @@ export const HOMEPAGE_CATEGORIES = [
   "Nintendo",
   "PC & Office",
   "Networking",
+  "Apple",
+  "Samsung",
+  "Phones",
   "Mobile & Tablets",
   "Kids Tech"
 ];
@@ -37,7 +40,10 @@ export const CATEGORY_SUBCATEGORIES = {
   "PC & Office": ["Keyboards", "Mice", "Keyboard + Mouse Combos", "Monitors", "Desk Setup Accessories", "Laptops"],
   Networking: ["Routers", "Modem Routers", "Switches", "Access Points / Range Extenders", "Network Cards"],
   "Mobile & Tablets": ["Smartphones", "Tablets", "Tablet Accessories", "Earbuds", "AirPods Cases", "Smartwatches", "Watch Bands"],
-  "Kids Tech": ["Kids Tablets", "Educational Game Consoles"]
+  "Kids Tech": ["Kids Tablets", "Educational Game Consoles"],
+  Apple: ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods", "Accessories"],
+  Samsung: ["Galaxy Phones", "Galaxy Tablets", "Galaxy Watch", "Galaxy Buds", "Accessories"],
+  Phones: ["Smartphones", "Phone Accessories"]
 };
 
 export const CATEGORY_LABELS = {
@@ -47,6 +53,9 @@ export const CATEGORY_LABELS = {
   Nintendo: { en: "Nintendo", he: "נינטנדו" },
   "PC & Office": { en: "PC & Office", he: "מחשב ומשרד" },
   Networking: { en: "Networking", he: "רשתות" },
+  Apple: { en: "Apple", he: "אפל" },
+  Samsung: { en: "Samsung", he: "סמסונג" },
+  Phones: { en: "Phones", he: "טלפונים" },
   "Mobile & Tablets": { en: "Mobile & Tablets", he: "מובייל וטאבלטים" },
   "Kids Tech": { en: "Kids Tech", he: "טכנולוגיה לילדים" }
 };
@@ -85,7 +94,17 @@ export const SUBCATEGORY_LABELS = {
   Smartwatches: { en: "Smartwatches", he: "שעונים חכמים" },
   "Watch Bands": { en: "Watch Bands", he: "רצועות לשעונים" },
   "Kids Tablets": { en: "Kids Tablets", he: "טאבלטים לילדים" },
-  "Educational Game Consoles": { en: "Educational Game Consoles", he: "קונסולות חינוכיות" }
+  "Educational Game Consoles": { en: "Educational Game Consoles", he: "קונסולות חינוכיות" },
+  "iPhone": { en: "iPhone", he: "אייפון" },
+  "iPad": { en: "iPad", he: "אייפד" },
+  "MacBook": { en: "MacBook", he: "מקבוק" },
+  "Apple Watch": { en: "Apple Watch", he: "אפל ווטש" },
+  "AirPods": { en: "AirPods", he: "איירפודס" },
+  "Galaxy Phones": { en: "Galaxy Phones", he: "טלפוני גלקסי" },
+  "Galaxy Tablets": { en: "Galaxy Tablets", he: "טאבלטים גלקסי" },
+  "Galaxy Watch": { en: "Galaxy Watch", he: "שעון גלקסי" },
+  "Galaxy Buds": { en: "Galaxy Buds", he: "גלקסי באדס" },
+  "Phone Accessories": { en: "Phone Accessories", he: "אביזרי טלפון" }
 };
 
 export const SPEC_LABELS = {
@@ -222,20 +241,126 @@ const resolveSubcategory = (text, mainCategory) => {
 };
 
 export const categorizeProduct = (product) => {
-  const text = toSearchText(product);
+  const text = (product?.title || "").toLowerCase();
+  const includesAny = (value, keywords) => keywords.some((keyword) => value.includes(keyword));
 
+  const gamingBrands = ["razer", "corsair", "logitech", "steelseries", "hyperx", "scorpius"];
+  const sonyBrands = ["sony", "playstation", "ps5"];
+  const xboxBrands = ["xbox", "microsoft"];
+  const networkBrands = ["tp-link", "tplink"];
+  const appleBrands = ["apple", "iphone", "ipad", "macbook", "airpods", "imac"];
+  const samsungBrands = ["samsung", "galaxy"];
+
+  const categories = new Set();
+  const subCategories = new Set();
   let mainCategory = "";
-  if (isPlayStation(text)) mainCategory = "PlayStation";
-  else if (isXbox(text)) mainCategory = "Xbox";
-  else if (isNintendo(text)) mainCategory = "Nintendo";
-  else if (isMobile(text)) mainCategory = "Mobile & Tablets";
-  else if (isNetworking(text)) mainCategory = "Networking";
-  else if (isGamingGear(text)) mainCategory = "Gaming Gear";
-  else if (isPcOffice(text)) mainCategory = "PC & Office";
-  else if (isKidsTech(text)) mainCategory = "Kids Tech";
+  let subCategory = "";
 
-  const subCategory = mainCategory ? resolveSubcategory(text, mainCategory) : "";
-  return { mainCategory, subCategory };
+  const addMatch = (category, sub) => {
+    categories.add(category);
+    if (sub) subCategories.add(sub);
+    if (!mainCategory) {
+      mainCategory = category;
+      subCategory = sub || "";
+    }
+  };
+
+  if (includesAny(text, appleBrands)) {
+    if (includesAny(text, ["iphone", "אייפון"])) addMatch("Apple", "iPhone");
+    else if (includesAny(text, ["ipad", "אייפד"])) addMatch("Apple", "iPad");
+    else if (includesAny(text, ["macbook", "מקבוק"])) addMatch("Apple", "MacBook");
+    else if (includesAny(text, ["watch"])) addMatch("Apple", "Apple Watch");
+    else if (includesAny(text, ["airpods"])) addMatch("Apple", "AirPods");
+    else addMatch("Apple", "Accessories");
+  }
+
+  if (includesAny(text, samsungBrands)) {
+    if (includesAny(text, ["tablet", "tab", "טאבלט"])) addMatch("Samsung", "Galaxy Tablets");
+    else if (includesAny(text, ["watch", "gear", "שעון"])) addMatch("Samsung", "Galaxy Watch");
+    else if (includesAny(text, ["buds"])) addMatch("Samsung", "Galaxy Buds");
+    else if (includesAny(text, ["phone", "galaxy", "טלפון", "סמארטפון"])) addMatch("Samsung", "Galaxy Phones");
+    else addMatch("Samsung", "Accessories");
+  }
+
+  if (includesAny(text, ["phone", "smartphone", "טלפון", "סמארטפון"])) {
+    if (includesAny(text, ["case", "cover", "מטען", "כיסוי", "charger"])) {
+      addMatch("Phones", "Phone Accessories");
+    } else {
+      addMatch("Phones", "Smartphones");
+    }
+  }
+
+  if (includesAny(text, sonyBrands)) {
+    if (includesAny(text, ["קונסולה"])) addMatch("PlayStation", "Consoles");
+    else if (includesAny(text, ["בקר", "controller", "dualsense"])) addMatch("PlayStation", "Controllers");
+    else if (includesAny(text, ["מטען", "charging"])) addMatch("PlayStation", "Charging Docks");
+    else if (includesAny(text, ["vr", "מציאות"])) addMatch("PlayStation", "VR");
+    else if (includesAny(text, ["portal", "remote"])) addMatch("PlayStation", "Remote Play / Portal");
+    else addMatch("PlayStation", "Accessories");
+  }
+
+  if (includesAny(text, xboxBrands)) {
+    if (includesAny(text, ["קונסולה"])) addMatch("Xbox", "Consoles");
+    else if (includesAny(text, ["בקר", "controller"])) addMatch("Xbox", "Controllers");
+    else addMatch("Xbox", "Accessories");
+  }
+
+  if (includesAny(text, networkBrands) || includesAny(text, ["נתב", "router", "archer"])) {
+    if (includesAny(text, ["מודם"])) addMatch("Networking", "Modem Routers");
+    else if (includesAny(text, ["מתג", "רכזת", "switch"])) addMatch("Networking", "Switches");
+    else if (includesAny(text, ["מגדיל", "access", "re"])) {
+      addMatch("Networking", "Access Points / Range Extenders");
+    } else if (includesAny(text, ["כרטיס רשת"])) addMatch("Networking", "Network Cards");
+    else addMatch("Networking", "Routers");
+  }
+
+  if (
+    includesAny(text, ["אוזניות", "headset"]) ||
+    (includesAny(text, gamingBrands) && includesAny(text, ["hs", "blackshark", "stealth"]))
+  ) {
+    addMatch("Gaming Gear", "Gaming Headsets");
+  }
+
+  if (
+    includesAny(text, ["עכבר", "mouse"]) ||
+    (includesAny(text, gamingBrands) && includesAny(text, ["m55", "cobra", "katar"]))
+  ) {
+    addMatch("Gaming Gear", "Gaming Mice");
+  }
+
+  if (
+    includesAny(text, ["מקלדת", "keyboard"]) ||
+    (includesAny(text, gamingBrands) && includesAny(text, ["k55", "mx", "keys"]))
+  ) {
+    addMatch("Gaming Gear", "Gaming Keyboards");
+  }
+
+  if (includesAny(text, ["משטח", "pad", "gigantus", "g740", "mm100"])) {
+    addMatch("Gaming Gear", "Mouse Pads");
+  }
+
+  if (includesAny(text, ["bundle", "kit", "ערכת"])) {
+    addMatch("Gaming Gear", "Gaming Bundles");
+  }
+
+  if (includesAny(text, ["thrustmaster", "הגה"])) {
+    addMatch("Gaming Gear", "Racing / Flight Controllers");
+  }
+
+  if (includesAny(text, ["זרוע", "usb", "hub"])) {
+    addMatch("PC & Office", "Desk Setup Accessories");
+  }
+
+  if (!mainCategory) {
+    addMatch("PC & Office", "Accessories");
+  }
+
+  return {
+    mainCategory,
+    subCategory,
+    categories: Array.from(categories),
+    subCategories: Array.from(subCategories)
+  };
 };
 
 export const extractBrand = (product) => {
@@ -285,6 +410,7 @@ export const normalizeProduct = (product) => {
     sku: product?.sku || "",
     category: product?.category || "",
     image: pickImage(product?.images),
-    images: Array.isArray(product?.images) ? product.images : []
+    images: Array.isArray(product?.images) ? product.images : [],
+    videos: Array.isArray(product?.videos) ? product.videos : []
   };
 };

@@ -35,7 +35,7 @@ export default function ProductGrid({ onAdd }) {
         <p>{t({ en: "Handpicked new releases and pre-owned gems.", he: "חדשים נבחרים ומציאות יד שנייה." })}</p>
       </div>
       <div className="product-grid">
-        {products.map((product) => (
+        {products.slice(0, 30).map((product) => (
           <ProductCard key={product.id} product={product} onAdd={onAdd} />
         ))}
       </div>

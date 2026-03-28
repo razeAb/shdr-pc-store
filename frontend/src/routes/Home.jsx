@@ -18,6 +18,7 @@ export default function Home() {
     Nintendo: "/svg/nintendo-2.svg",
     "PC & Office": Monitor,
     Networking: Wifi,
+    Apple: "/svg/apple-logo-svgrepo-com.svg",
     "Mobile & Tablets": Smartphone,
     "Kids Tech": Users
   };

@@ -1,17 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import SearchBar from "./SearchBar.jsx";
-import { useCart } from "../context/CartContext.jsx";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
 
 export default function Header() {
-  const { items } = useCart();
   const { products } = useProducts();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useLang();
-  const cartCount = items.reduce((total, item) => total + item.qty, 0);
 
   const handleAccountClick = () => {
     const token = localStorage.getItem("shdr-token");
@@ -88,23 +85,6 @@ export default function Header() {
               />
             </svg>
           </button>
-          <Link className="icon-button cart-button" to="/cart" aria-label={t({ en: "Cart", he: "עגלה" })}>
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
-              <path
-                d="M6 6h15l-1.6 8.5a2 2 0 0 1-2 1.5H9.4a2 2 0 0 1-2-1.6L5 3H2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <circle cx="9" cy="20" r="1.4" />
-              <circle cx="18" cy="20" r="1.4" />
-            </svg>
-            <span className="cart-count" aria-live="polite">
-              {cartCount}
-            </span>
-          </Link>
         </div>
       </div>
     </header>

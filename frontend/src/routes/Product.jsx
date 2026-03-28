@@ -1,5 +1,5 @@
-import { useParams } from "react-router-dom";
-import { useOutletContext } from "react-router-dom";
+import { useParams, useOutletContext } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
@@ -44,9 +44,66 @@ export default function Product() {
     onToast(t({ en: "Added to cart", he: "נוסף לעגלה" }));
   };
 
+  const mediaItems = useMemo(() => {
+    const images = Array.isArray(product.images) && product.images.length > 0
+      ? product.images
+      : product.image
+        ? [product.image]
+        : [];
+    const videos = Array.isArray(product.videos) ? product.videos : [];
+    return [
+      ...images.map((src) => ({ type: "image", src })),
+      ...videos.map((src) => ({ type: "video", src }))
+    ];
+  }, [product.image, product.images, product.videos]);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [mediaItems.length]);
+
+  useEffect(() => {
+    if (mediaItems.length <= 1) return undefined;
+    const timer = window.setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % mediaItems.length);
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [mediaItems.length]);
+
+  const activeMedia = mediaItems[activeIndex];
+
   return (
     <section className="product-detail" aria-labelledby="product-title">
-      <img src={product.image} alt={product.title} loading="lazy" />
+      <div className="product-media">
+        {activeMedia?.type === "video" ? (
+          <video
+            key={activeMedia.src}
+            className="product-media__asset"
+            src={activeMedia.src}
+            controls
+            preload="metadata"
+          />
+        ) : (
+          <img
+            key={activeMedia?.src}
+            className="product-media__asset"
+            src={activeMedia?.src || product.image}
+            alt={product.title}
+            loading="lazy"
+          />
+        )}
+        {mediaItems.length > 1 && (
+          <div className="product-media__dots" aria-hidden="true">
+            {mediaItems.map((item, index) => (
+              <span
+                key={`${item.type}-${item.src}`}
+                className={index === activeIndex ? "dot is-active" : "dot"}
+              />
+            ))}
+          </div>
+        )}
+      </div>
       <div>
         <p className="eyebrow">{product.platform}</p>
         <h1 id="product-title">{product.title}</h1>

@@ -1,5 +1,6 @@
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useOutletContext } from "react-router-dom";
 import { useProducts } from "../context/ProductsContext.jsx";
+import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 import {
   CATEGORY_LABELS,
@@ -16,12 +17,14 @@ const useQuery = () => new URLSearchParams(useLocation().search);
 
 export default function Search() {
   const location = useLocation();
+  const { onToast } = useOutletContext();
   const query = useQuery();
   const term = query.get("q")?.trim().toLowerCase() || "";
   const category = query.get("category")?.trim() || "";
   const subcategory = query.get("subcategory")?.trim() || "";
   const brand = query.get("brand")?.trim() || "";
   const { t } = useLang();
+  const { addItem } = useCart();
   const specs = query
     .get("specs")
     ?.split(",")
@@ -50,7 +53,12 @@ export default function Search() {
     };
   });
 
-  const categoryProducts = category ? enriched.filter((product) => product.mainCategory === category) : enriched;
+  const matchesCategory = (product, value) =>
+    product.mainCategory === value || (product.categories || []).includes(value);
+  const matchesSubcategory = (product, value) =>
+    product.subCategory === value || (product.subCategories || []).includes(value);
+
+  const categoryProducts = category ? enriched.filter((product) => matchesCategory(product, category)) : enriched;
   const availableSubcategories = category ? CATEGORY_SUBCATEGORIES[category] || [] : [];
   const availableBrands = category
     ? Array.from(new Set(categoryProducts.map((product) => product.brand))).sort()
@@ -69,8 +77,8 @@ export default function Search() {
           : ".";
 
   const results = enriched.filter((product) => {
-    if (category && product.mainCategory !== category) return false;
-    if (subcategory && product.subCategory !== subcategory) return false;
+    if (category && !matchesCategory(product, category)) return false;
+    if (subcategory && !matchesSubcategory(product, subcategory)) return false;
     if (brand && product.brand !== brand) return false;
     if (specs.length && !specs.every((spec) => product.specs.includes(spec))) return false;
     if (!term) return true;
@@ -113,6 +121,11 @@ export default function Search() {
     en: `Showing ${results.length} result${results.length === 1 ? "" : "s"}`,
     he: `מציג ${results.length} תוצאה${results.length === 1 ? "" : "ות"}`
   });
+
+  const handleAdd = (product) => {
+    addItem(product);
+    onToast(t({ en: "Added to cart", he: "נוסף לעגלה" }));
+  };
 
   return (
     <section className="search-results" aria-labelledby="search-results-title">
@@ -202,9 +215,17 @@ export default function Search() {
                   .join(" • ") || product.platform}
               </p>
             </div>
-            <p className="price-now">
-              {formatCurrency(product.salePrice ?? product.price, "ILS")}
-            </p>
+            <div className="result-row__actions">
+              <p className="price-now">
+                {formatCurrency(product.salePrice ?? product.price, "ILS")}
+              </p>
+              <button type="button" className="primary-button" onClick={() => handleAdd(product)}>
+                {t({ en: "Add to cart", he: "הוסף לעגלה" })}
+              </button>
+              <Link className="secondary-button" to={`/product/${product.slug}`}>
+                {t({ en: "More details", he: "פרטים נוספים" })}
+              </Link>
+            </div>
           </article>
         ))}
       </div>

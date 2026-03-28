@@ -3,8 +3,9 @@ import { useLang } from "../context/LangContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 import "./cart-drawer.css";
 
-export default function CartDrawer({ isOpen, onClose, items = [] }) {
+export default function CartDrawer({ isOpen, onClose, items = [], onUpdateQty, onRemoveItem }) {
   const { t } = useLang();
+  const [coupon, setCoupon] = React.useState("");
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -66,8 +67,38 @@ export default function CartDrawer({ isOpen, onClose, items = [] }) {
                       {item.qty} × {formatCurrency(item.price, "ILS")}
                     </div>
                   </div>
-                  <div className="cart-item__total">
-                    {formatCurrency(item.qty * item.price, "ILS")}
+                  <div className="cart-item__controls">
+                    <div className="qty-controls" role="group" aria-label={t({ en: "Quantity", he: "כמות" })}>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateQty?.(item.id, Math.max(1, item.qty - 1))}
+                        aria-label={t({ en: "Decrease quantity", he: "הפחת כמות" })}
+                        disabled={item.qty <= 1}
+                      >
+                        -
+                      </button>
+                      <span className="qty" aria-live="polite">
+                        {item.qty}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateQty?.(item.id, Math.min(99, item.qty + 1))}
+                        aria-label={t({ en: "Increase quantity", he: "הגדל כמות" })}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <div className="cart-item__total">
+                      {formatCurrency(item.qty * item.price, "ILS")}
+                    </div>
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      onClick={() => onRemoveItem?.(item.id)}
+                      aria-label={t({ en: "Remove item", he: "הסר פריט" })}
+                    >
+                      🗑
+                    </button>
                   </div>
                 </li>
               ))}
@@ -76,6 +107,21 @@ export default function CartDrawer({ isOpen, onClose, items = [] }) {
         </div>
 
         <footer className="cart-drawer__footer">
+          <div className="cart-drawer__coupon">
+            <label htmlFor="drawer-coupon-input">{t({ en: "Coupon code", he: "קוד קופון" })}</label>
+            <div className="cart-drawer__coupon-field">
+              <input
+                id="drawer-coupon-input"
+                type="text"
+                value={coupon}
+                onChange={(event) => setCoupon(event.target.value)}
+                placeholder={t({ en: "Enter code", he: "הכנס קוד" })}
+              />
+              <button type="button" className="secondary-button">
+                {t({ en: "Apply", he: "החל" })}
+              </button>
+            </div>
+          </div>
           <button className="cart-drawer__primary" type="button">
             {t({ en: "Checkout", he: "לקופה" })}
           </button>

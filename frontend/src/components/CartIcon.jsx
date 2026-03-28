@@ -12,7 +12,12 @@ export default function CartIcon({ onOpen, count = 0 }) {
       onClick={onOpen}
       aria-label={t({ en: "Open cart", he: "פתח עגלה" })}
     >
-      <span className="cart-icon__glyph">🛒</span>
+      <img
+        className="cart-icon__glyph"
+        src="/cart-svgrepo-com.svg"
+        alt=""
+        aria-hidden="true"
+      />
       {count > 0 && <span className="cart-icon__badge">{count}</span>}
     </button>
   );

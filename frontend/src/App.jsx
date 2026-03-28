@@ -19,14 +19,16 @@ import { useCart } from "./context/CartContext.jsx";
 
 function AppLayout({ onToast }) {
   const { t } = useLang();
-  const { items } = useCart();
+  const { items, updateQty, removeItem } = useCart();
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const location = useLocation();
+  const prevPathname = useRef(location.pathname);
 
   useEffect(() => {
-    if (isCartDrawerOpen) {
+    if (prevPathname.current !== location.pathname && isCartDrawerOpen) {
       setIsCartDrawerOpen(false);
     }
+    prevPathname.current = location.pathname;
   }, [location.pathname, isCartDrawerOpen]);
 
   const itemCount = items.reduce((total, item) => total + item.qty, 0);
@@ -44,6 +46,8 @@ function AppLayout({ onToast }) {
         isOpen={isCartDrawerOpen}
         onClose={() => setIsCartDrawerOpen(false)}
         items={items}
+        onUpdateQty={updateQty}
+        onRemoveItem={removeItem}
       />
       <Footer />
     </div>
