@@ -1,12 +1,14 @@
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../utils/format.js";
+import { useLang } from "../context/LangContext.jsx";
 
 export default function ProductCard({ product, onAdd }) {
   const hasDiscount = Number.isFinite(product.salePrice);
+  const { t } = useLang();
   return (
     <article className="product-card">
       <Link className="product-image" to={`/product/${product.slug}`}>
-        {hasDiscount && <span className="badge">On sale</span>}
+        {hasDiscount && <span className="badge">{t({ en: "On sale", he: "בהנחה" })}</span>}
         <img src={product.image} alt={product.title} loading="lazy" />
       </Link>
       <div className="product-body">
@@ -24,14 +26,16 @@ export default function ProductCard({ product, onAdd }) {
           )}
         </div>
         {product.rating ? (
-          <p className="product-rating">Rated {product.rating} out of 5</p>
+          <p className="product-rating">
+            {t({ en: `Rated ${product.rating} out of 5`, he: `דירוג ${product.rating} מתוך 5` })}
+          </p>
         ) : null}
         <button
           type="button"
           className="secondary-button"
           onClick={() => onAdd(product)}
         >
-          Add to cart
+          {t({ en: "Add to cart", he: "הוסף לעגלה" })}
         </button>
       </div>
     </article>

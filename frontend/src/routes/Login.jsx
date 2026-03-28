@@ -1,11 +1,13 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useLang } from "../context/LangContext.jsx";
 
 export default function Login() {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const navigate = useNavigate();
+  const { t } = useLang();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -27,13 +29,13 @@ export default function Login() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.message || "Login failed");
+        throw new Error(data?.message || t({ en: "Login failed", he: "ההתחברות נכשלה" }));
       }
       localStorage.setItem("shdr-token", data.token);
       localStorage.setItem("token", data.token);
       localStorage.setItem("shdr-role", data?.user?.role || "user");
       localStorage.setItem("shdr-auth-time", String(Date.now()));
-      setStatus({ type: "success", message: "Signed in successfully." });
+      setStatus({ type: "success", message: t({ en: "Signed in successfully.", he: "התחברת בהצלחה." }) });
       form?.reset();
       if (data?.user?.role === "admin") {
         navigate("/admin", { replace: true });
@@ -48,11 +50,11 @@ export default function Login() {
   return (
     <section className="auth" aria-labelledby="login-title">
       <div className="auth-card">
-        <h1 id="login-title">Sign in</h1>
-        <p className="auth-subtitle">Access orders, wishlists, and exclusive drops.</p>
+        <h1 id="login-title">{t({ en: "Sign in", he: "התחברות" })}</h1>
+        <p className="auth-subtitle">{t({ en: "Access orders, wishlists, and exclusive drops.", he: "גישה להזמנות, רשימות משאלות ומבצעים בלעדיים." })}</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            <span>Email</span>
+            <span>{t({ en: "Email", he: "אימייל" })}</span>
             <input
               type="email"
               name="email"
@@ -62,7 +64,7 @@ export default function Login() {
             />
           </label>
           <label>
-            <span>Password</span>
+            <span>{t({ en: "Password", he: "סיסמה" })}</span>
             <input
               type="password"
               name="password"
@@ -72,7 +74,7 @@ export default function Login() {
             />
           </label>
           <button type="submit" className="primary-button">
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? t({ en: "Signing in...", he: "מתחבר..." }) : t({ en: "Sign in", he: "התחבר" })}
           </button>
         </form>
         {status.message ? (
@@ -82,10 +84,10 @@ export default function Login() {
         ) : null}
         <div className="auth-links">
           <button type="button" className="text-button">
-            Forgot password?
+            {t({ en: "Forgot password?", he: "שכחת סיסמה?" })}
           </button>
           <p>
-            New here? <Link to="/signup">Create an account</Link>
+            {t({ en: "New here?", he: "חדש כאן?" })} <Link to="/signup">{t({ en: "Create an account", he: "פתח חשבון" })}</Link>
           </p>
         </div>
       </div>

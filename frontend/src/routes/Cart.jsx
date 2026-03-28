@@ -1,18 +1,20 @@
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
+import { useLang } from "../context/LangContext.jsx";
 
 export default function Cart() {
   const { items, updateQty, removeItem, clearCart } = useCart();
+  const { t } = useLang();
   const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
 
   if (items.length === 0) {
     return (
       <section className="cart">
-        <h1>Your cart is empty</h1>
-        <p>Browse our latest releases and deals.</p>
+        <h1>{t({ en: "Your cart is empty", he: "העגלה שלך ריקה" })}</h1>
+        <p>{t({ en: "Browse our latest releases and deals.", he: "גלו את החדשים והמבצעים שלנו." })}</p>
         <Link to="/" className="primary-button">
-          Return home
+          {t({ en: "Return home", he: "חזרה לדף הבית" })}
         </Link>
       </section>
     );
@@ -21,9 +23,9 @@ export default function Cart() {
   return (
     <section className="cart">
       <div className="section-heading">
-        <h1>Your cart</h1>
+        <h1>{t({ en: "Your cart", he: "העגלה שלך" })}</h1>
         <button type="button" className="text-button" onClick={clearCart}>
-          Clear cart
+          {t({ en: "Clear cart", he: "נקה עגלה" })}
         </button>
       </div>
       <div className="cart-list">
@@ -35,7 +37,7 @@ export default function Cart() {
               <p>{formatCurrency(item.price, "ILS")}</p>
               <div className="cart-actions">
                 <label>
-                  <span className="visually-hidden">Quantity</span>
+                  <span className="visually-hidden">{t({ en: "Quantity", he: "כמות" })}</span>
                   <input
                     type="number"
                     min="1"
@@ -48,7 +50,7 @@ export default function Cart() {
                   className="text-button"
                   onClick={() => removeItem(item.id)}
                 >
-                  Remove
+                  {t({ en: "Remove", he: "הסר" })}
                 </button>
               </div>
             </div>
@@ -60,11 +62,11 @@ export default function Cart() {
       </div>
       <div className="cart-summary">
         <div>
-          <p>Total</p>
+          <p>{t({ en: "Total", he: "סה״כ" })}</p>
           <h2>{formatCurrency(total, "ILS")}</h2>
         </div>
         <button type="button" className="primary-button">
-          Checkout
+          {t({ en: "Checkout", he: "לקופה" })}
         </button>
       </div>
     </section>

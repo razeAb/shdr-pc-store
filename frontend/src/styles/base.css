@@ -72,6 +72,11 @@ ul {
   transform: translateY(0);
 }
 
+html[dir="rtl"] .skip-link {
+  left: auto;
+  right: var(--space-3);
+}
+
 #main {
   scroll-margin-top: var(--header-height);
 }

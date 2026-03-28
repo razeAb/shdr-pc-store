@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 const LangContext = createContext({
   lang: "en",
@@ -18,6 +18,12 @@ export function LangProvider({ children, initialLang = "en" }) {
       }
       return String(value);
     };
+  }, [lang]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
   }, [lang]);
 
   const contextValue = useMemo(() => ({ lang, setLang, t }), [lang, t]);

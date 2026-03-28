@@ -1,25 +1,26 @@
 import { useEffect, useRef, useState } from "react";
+import { useLang } from "../context/LangContext.jsx";
 
 const slides = [
   {
     id: "slide-1",
     title: "Cyberpunk 2077",
-    description: "A neon-soaked open-world RPG packed with choices.",
-    cta: "Shop Now",
+    description: { en: "A neon-soaked open-world RPG packed with choices.", he: "RPG עולם פתוח זוהר ניאון, מלא בחירות." },
+    cta: { en: "Shop Now", he: "לקנייה" },
     image: "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg"
   },
   {
     id: "slide-2",
     title: "Elden Ring",
-    description: "Forge a path through the Lands Between.",
-    cta: "Pre-order",
+    description: { en: "Forge a path through the Lands Between.", he: "פרצו דרך בארצות שבין העולמות." },
+    cta: { en: "Pre-order", he: "הזמנה מוקדמת" },
     image: "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg"
   },
   {
     id: "slide-3",
     title: "Baldur's Gate 3",
-    description: "Lead your party through a legendary fantasy campaign.",
-    cta: "View Deal",
+    description: { en: "Lead your party through a legendary fantasy campaign.", he: "הובילו את הקבוצה שלכם בקמפיין פנטזיה אגדי." },
+    cta: { en: "View Deal", he: "צפו בדיל" },
     image: "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg"
   }
 ];
@@ -27,6 +28,7 @@ const slides = [
 const STORAGE_KEY = "shdr-carousel-paused";
 
 export default function HeroCarousel() {
+  const { t } = useLang();
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [isFocusInside, setIsFocusInside] = useState(false);
@@ -97,7 +99,7 @@ export default function HeroCarousel() {
     <section
       className="hero-carousel"
       aria-roledescription="carousel"
-      aria-label="Featured games"
+      aria-label={t({ en: "Featured games", he: "משחקים מומלצים" })}
       tabIndex={0}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => setIsPointerInside(true)}
@@ -112,22 +114,22 @@ export default function HeroCarousel() {
             key={slide.id}
             className={`carousel-slide ${index === activeIndex ? "is-active" : ""}`}
             aria-roledescription="slide"
-            aria-label={`${index + 1} of ${slides.length}`}
+            aria-label={t({ en: `${index + 1} of ${slides.length}`, he: `${index + 1} מתוך ${slides.length}` })}
             aria-hidden={index !== activeIndex}
           >
             <div className="slide-content">
-              <p className="eyebrow">Featured Drop</p>
+              <p className="eyebrow">{t({ en: "Featured Drop", he: "השקה חמה" })}</p>
               <h1>{slide.title}</h1>
-              <p className="slide-description">{slide.description}</p>
+              <p className="slide-description">{t(slide.description)}</p>
               <button type="button" className="primary-button">
-                {slide.cta}
+                {t(slide.cta)}
               </button>
             </div>
             <div className="slide-art">
               {/* Hero images should use fetchpriority="high" when shipped to production. */}
               <img
                 src={slide.image}
-                alt={`${slide.title} key art`}
+                alt={t({ en: `${slide.title} key art`, he: `תמונת מפתח ${slide.title}` })}
                 loading={index === 0 ? "eager" : "lazy"}
                 fetchpriority={index === 0 ? "high" : "auto"}
                 decoding="async"
@@ -142,18 +144,18 @@ export default function HeroCarousel() {
           type="button"
           className="icon-button"
           onClick={() => goToSlide(activeIndex - 1)}
-          aria-label="Previous slide"
+          aria-label={t({ en: "Previous slide", he: "שקופית קודמת" })}
         >
-          <span aria-hidden="true">Prev</span>
+          <span aria-hidden="true">{t({ en: "Prev", he: "קודם" })}</span>
         </button>
-        <div className="carousel-dots" role="tablist" aria-label="Slide dots">
+        <div className="carousel-dots" role="tablist" aria-label={t({ en: "Slide dots", he: "ניווט שקופיות" })}>
           {slides.map((slide, index) => (
             <button
               key={slide.id}
               type="button"
               className={`dot ${index === activeIndex ? "is-active" : ""}`}
               onClick={() => goToSlide(index)}
-              aria-label={`Go to slide ${index + 1}`}
+              aria-label={t({ en: `Go to slide ${index + 1}`, he: `מעבר לשקופית ${index + 1}` })}
               aria-pressed={index === activeIndex}
             />
           ))}
@@ -162,9 +164,9 @@ export default function HeroCarousel() {
           type="button"
           className="icon-button"
           onClick={() => goToSlide(activeIndex + 1)}
-          aria-label="Next slide"
+          aria-label={t({ en: "Next slide", he: "שקופית הבאה" })}
         >
-          <span aria-hidden="true">Next</span>
+          <span aria-hidden="true">{t({ en: "Next", he: "הבא" })}</span>
         </button>
         <button
           type="button"
@@ -172,7 +174,7 @@ export default function HeroCarousel() {
           onClick={() => setIsUserPaused((prev) => !prev)}
           aria-pressed={isUserPaused}
         >
-          {isUserPaused ? "Play" : "Pause"}
+          {isUserPaused ? t({ en: "Play", he: "נגן" }) : t({ en: "Pause", he: "השהה" })}
         </button>
       </div>
     </section>

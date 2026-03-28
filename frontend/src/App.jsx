@@ -12,12 +12,14 @@ import Login from "./routes/Login.jsx";
 import Signup from "./routes/Signup.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
 import { ProductsProvider } from "./context/ProductsContext.jsx";
+import { useLang } from "./context/LangContext.jsx";
 
 function AppLayout({ onToast }) {
+  const { t } = useLang();
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
-        Skip to content
+        {t({ en: "Skip to content", he: "דלג לתוכן" })}
       </a>
       <Header />
       <main id="main" className="main-content" tabIndex={-1}>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import AutocompleteList from "./AutocompleteList.jsx";
+import { useLang } from "../context/LangContext.jsx";
 
 const MAX_SUGGESTIONS = 6;
 
@@ -11,6 +12,7 @@ export default function SearchBar({ id, products, isOpen, onRequestClose }) {
   const listId = useId();
   const wrapperRef = useRef(null);
   const navigate = useNavigate();
+  const { t } = useLang();
   const isVisible = isOpen ?? true;
 
   const suggestions = useMemo(() => {
@@ -92,12 +94,12 @@ export default function SearchBar({ id, products, isOpen, onRequestClose }) {
       ref={wrapperRef}
     >
       <label className="visually-hidden" htmlFor={id}>
-        Search products
+        {t({ en: "Search products", he: "חיפוש מוצרים" })}
       </label>
       <input
         id={id}
         type="search"
-        placeholder="Search games, platforms, tags"
+        placeholder={t({ en: "Search games, platforms, tags", he: "חפש משחקים, קטגוריות ותגיות" })}
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);
@@ -115,7 +117,7 @@ export default function SearchBar({ id, products, isOpen, onRequestClose }) {
         }
       />
       <button type="submit" className="search-button">
-        Search
+        {t({ en: "Search", he: "חפש" })}
       </button>
       {openList && (
         <AutocompleteList

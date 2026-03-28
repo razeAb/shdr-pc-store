@@ -17,7 +17,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         v7_relativeSplatPath: true
       }}
     >
-      <LangProvider>
+      <LangProvider initialLang="he">
         <CartProvider>
           <App />
         </CartProvider>

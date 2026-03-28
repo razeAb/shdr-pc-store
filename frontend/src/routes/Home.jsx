@@ -1,52 +1,44 @@
 import { Link, useOutletContext } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { Gamepad2, Headphones, Monitor, Smartphone, Users, Wifi } from "lucide-react";
+import { CATEGORY_LABELS, HOMEPAGE_CATEGORIES } from "../utils/products.js";
 import PromoBanner from "../components/PromoBanner.jsx";
 import HeroCarousel from "../components/HeroCarousel.jsx";
 import ProductGrid from "../components/ProductGrid.jsx";
 import { useCart } from "../context/CartContext.jsx";
-import api from "../api";
+import { useLang } from "../context/LangContext.jsx";
 
 export default function Home() {
   const { onToast } = useOutletContext();
   const { addItem } = useCart();
-  const [categories, setCategories] = useState([]);
-  const [categoriesError, setCategoriesError] = useState("");
-
+  const { t } = useLang();
+  const categoryIcons = {
+    "Gaming Gear": Headphones,
+    PlayStation: "/svg/playstation-svgrepo-com.svg",
+    Xbox: "/svg/Xbox_logo_2012_cropped.svg.png",
+    Nintendo: "/svg/nintendo-2.svg",
+    "PC & Office": Monitor,
+    Networking: Wifi,
+    "Mobile & Tablets": Smartphone,
+    "Kids Tech": Users
+  };
   const handleAdd = (product) => {
     addItem(product);
-    onToast("Added to cart");
+    onToast(t({ en: "Added to cart", he: "נוסף לעגלה" }));
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const fetchCategories = async () => {
-      try {
-        const res = await api.get("/api/categories", { signal: controller.signal });
-        const list = Array.isArray(res.data) ? res.data : [];
-        setCategories(list.map((item) => item.name).filter(Boolean));
-        setCategoriesError("");
-      } catch (err) {
-        if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
-        setCategoriesError(err?.message || "Failed to load categories.");
-      }
-    };
-    fetchCategories();
-    return () => controller.abort();
-  }, []);
 
   return (
     <>
       <PromoBanner />
       <section className="hero-section">
         <HeroCarousel />
-        <div className="promo-tiles" aria-label="Promotions">
+        <div className="promo-tiles" aria-label={t({ en: "Promotions", he: "מבצעים" })}>
           <Link className="promo-tile" to="/search?q=gift%20cards">
             <div className="promo-icon" aria-hidden="true">
               GC
             </div>
             <div>
-              <h3>Gift cards</h3>
-              <p>Send digital codes in minutes.</p>
+              <h3>{t({ en: "Gift cards", he: "כרטיסי מתנה" })}</h3>
+              <p>{t({ en: "Send digital codes in minutes.", he: "שליחת קודים דיגיטליים תוך דקות." })}</p>
             </div>
           </Link>
           <Link className="promo-tile" to="/search?q=clearance">
@@ -54,28 +46,34 @@ export default function Home() {
               CL
             </div>
             <div>
-              <h3>Clearance</h3>
-              <p>Last chance deals while stocks last.</p>
+              <h3>{t({ en: "Clearance", he: "חיסול מלאי" })}</h3>
+              <p>{t({ en: "Last chance deals while stocks last.", he: "הזדמנות אחרונה עד גמר המלאי." })}</p>
             </div>
           </Link>
         </div>
         <section className="category-section" aria-labelledby="category-title">
           <div className="section-heading">
-            <h2 id="category-title">Shop by category</h2>
-            <p>Gear up with peripherals and PC essentials.</p>
+            <h2 id="category-title">{t({ en: "Shop by category", he: "קנייה לפי קטגוריה" })}</h2>
+            <p>{t({ en: "Explore store departments inspired by top tech retailers.", he: "מחלקות מרכזיות בהשראת חנויות טכנולוגיה מובילות." })}</p>
           </div>
           <div className="category-grid">
-            {categories.length > 0 ? (
-              categories.map((name) => (
+            {HOMEPAGE_CATEGORIES.map((name) => {
+              const icon = categoryIcons[name];
+              const label = t(CATEGORY_LABELS[name] || name);
+              return (
                 <Link key={name} className="category-card" to={`/search?category=${encodeURIComponent(name)}`}>
-                  <span>{name}</span>
+                  {typeof icon === "string" ? (
+                    <img className="category-icon-img" src={icon} alt="" aria-hidden="true" />
+                  ) : icon ? (
+                    (() => {
+                      const Icon = icon;
+                      return <Icon className="category-icon" size={22} aria-hidden="true" />;
+                    })()
+                  ) : null}
+                  <span>{label}</span>
                 </Link>
-              ))
-            ) : (
-              <div className="category-card">
-                <span>{categoriesError || "No categories yet."}</span>
-              </div>
-            )}
+              );
+            })}
           </div>
         </section>
       </section>

@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import { useLang } from "../context/LangContext.jsx";
 
 export default function Signup() {
   const [status, setStatus] = useState({ type: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const { t } = useLang();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -17,7 +19,7 @@ export default function Signup() {
     const confirmPassword = String(formData.get("confirmPassword") || "");
 
     if (password !== confirmPassword) {
-      setStatus({ type: "error", message: "Passwords do not match." });
+      setStatus({ type: "error", message: t({ en: "Passwords do not match.", he: "הסיסמאות אינן תואמות." }) });
       setIsSubmitting(false);
       return;
     }
@@ -35,13 +37,13 @@ export default function Signup() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data?.message || "Signup failed");
+        throw new Error(data?.message || t({ en: "Signup failed", he: "ההרשמה נכשלה" }));
       }
       localStorage.setItem("shdr-token", data.token);
       localStorage.setItem("token", data.token);
       localStorage.setItem("shdr-role", data?.user?.role || "user");
       localStorage.setItem("shdr-auth-time", String(Date.now()));
-      setStatus({ type: "success", message: "Account created successfully." });
+      setStatus({ type: "success", message: t({ en: "Account created successfully.", he: "החשבון נוצר בהצלחה." }) });
       form?.reset();
     } catch (error) {
       setStatus({ type: "error", message: error.message });
@@ -53,15 +55,15 @@ export default function Signup() {
   return (
     <section className="auth" aria-labelledby="signup-title">
       <div className="auth-card">
-        <h1 id="signup-title">Create account</h1>
-        <p className="auth-subtitle">Join SHDR to track orders and member deals.</p>
+        <h1 id="signup-title">{t({ en: "Create account", he: "יצירת חשבון" })}</h1>
+        <p className="auth-subtitle">{t({ en: "Join SHDR to track orders and member deals.", he: "הצטרפו ל-SHDR למעקב הזמנות ומבצעים לחברים." })}</p>
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
-            <span>Full name</span>
-            <input type="text" name="name" placeholder="Your name" autoComplete="name" required />
+            <span>{t({ en: "Full name", he: "שם מלא" })}</span>
+            <input type="text" name="name" placeholder={t({ en: "Your name", he: "השם שלך" })} autoComplete="name" required />
           </label>
           <label>
-            <span>Email</span>
+            <span>{t({ en: "Email", he: "אימייל" })}</span>
             <input
               type="email"
               name="email"
@@ -71,27 +73,27 @@ export default function Signup() {
             />
           </label>
           <label>
-            <span>Password</span>
+            <span>{t({ en: "Password", he: "סיסמה" })}</span>
             <input
               type="password"
               name="password"
-              placeholder="Create a password"
+              placeholder={t({ en: "Create a password", he: "בחר סיסמה" })}
               autoComplete="new-password"
               required
             />
           </label>
           <label>
-            <span>Confirm password</span>
+            <span>{t({ en: "Confirm password", he: "אימות סיסמה" })}</span>
             <input
               type="password"
               name="confirmPassword"
-              placeholder="Repeat password"
+              placeholder={t({ en: "Repeat password", he: "חזור על הסיסמה" })}
               autoComplete="new-password"
               required
             />
           </label>
           <button type="submit" className="primary-button">
-            {isSubmitting ? "Creating..." : "Create account"}
+            {isSubmitting ? t({ en: "Creating...", he: "יוצר..." }) : t({ en: "Create account", he: "צור חשבון" })}
           </button>
         </form>
         {status.message ? (
@@ -101,7 +103,7 @@ export default function Signup() {
         ) : null}
         <div className="auth-links">
           <p>
-            Already have an account? <Link to="/login">Sign in</Link>
+            {t({ en: "Already have an account?", he: "כבר יש לך חשבון?" })} <Link to="/login">{t({ en: "Sign in", he: "התחבר" })}</Link>
           </p>
         </div>
       </div>

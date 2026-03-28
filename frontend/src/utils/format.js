@@ -1,7 +1,9 @@
-export function formatCurrency(value, currency = "USD", locale = "en-US") {
+export function formatCurrency(value, currency = "USD", locale) {
   const amount = Number(value || 0);
+  const resolvedLocale =
+    locale || (typeof document !== "undefined" ? document.documentElement.lang || "en-US" : "en-US");
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat(resolvedLocale, {
       style: "currency",
       currency,
       maximumFractionDigits: 2
