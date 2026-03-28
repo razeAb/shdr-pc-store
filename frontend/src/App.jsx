@@ -13,6 +13,7 @@ import Signup from "./routes/Signup.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
 import { ProductsProvider } from "./context/ProductsContext.jsx";
 import { useLang } from "./context/LangContext.jsx";
+import CartIcon from "./components/CartIcon.jsx";
 
 function AppLayout({ onToast }) {
   const { t } = useLang();
@@ -25,6 +26,7 @@ function AppLayout({ onToast }) {
       <main id="main" className="main-content" tabIndex={-1}>
         <Outlet context={{ onToast }} />
       </main>
+      <CartIcon />
       <Footer />
     </div>
   );
