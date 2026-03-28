@@ -761,53 +761,6 @@ html[dir="rtl"] .toast {
   transform: translateY(0);
 }
 
-.floating-cart {
-  position: fixed;
-  bottom: var(--space-5);
-  right: var(--space-5);
-  width: 54px;
-  height: 54px;
-  border-radius: 999px;
-  background: var(--color-ink);
-  border: 1px solid rgba(245, 247, 255, 0.2);
-  color: var(--color-sand);
-  display: grid;
-  place-items: center;
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
-  z-index: 30;
-  transition: transform 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.floating-cart:hover {
-  transform: translateY(-2px);
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.floating-cart-count {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--color-gold);
-  color: var(--color-ink);
-  border-radius: 999px;
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border: 2px solid var(--color-ink);
-  min-width: 22px;
-  text-align: center;
-}
-
-html[dir="rtl"] .floating-cart {
-  right: auto;
-  left: var(--space-5);
-}
-
-html[dir="rtl"] .floating-cart-count {
-  right: auto;
-  left: -6px;
-}
-
 .mobile-search-toggle {
   display: none;
 }

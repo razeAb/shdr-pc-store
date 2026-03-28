@@ -1,5 +1,5 @@
-import { Routes, Route, Outlet } from "react-router-dom";
-import { useRef, useState } from "react";
+import { Routes, Route, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import Header from "./components/Header.jsx";
 import Footer from "./components/Footer.jsx";
 import Toast from "./components/Toast.jsx";
@@ -14,9 +14,22 @@ import AdminApp from "./admin/AdminApp.jsx";
 import { ProductsProvider } from "./context/ProductsContext.jsx";
 import { useLang } from "./context/LangContext.jsx";
 import CartIcon from "./components/CartIcon.jsx";
+import CartDrawer from "./components/CartDrawer.jsx";
+import { useCart } from "./context/CartContext.jsx";
 
 function AppLayout({ onToast }) {
   const { t } = useLang();
+  const { items } = useCart();
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (isCartDrawerOpen) {
+      setIsCartDrawerOpen(false);
+    }
+  }, [location.pathname, isCartDrawerOpen]);
+
+  const itemCount = items.reduce((total, item) => total + item.qty, 0);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -26,7 +39,12 @@ function AppLayout({ onToast }) {
       <main id="main" className="main-content" tabIndex={-1}>
         <Outlet context={{ onToast }} />
       </main>
-      <CartIcon />
+      <CartIcon onOpen={() => setIsCartDrawerOpen(true)} count={itemCount} />
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        items={items}
+      />
       <Footer />
     </div>
   );
