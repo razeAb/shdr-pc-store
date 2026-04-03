@@ -52,6 +52,7 @@ function mapProduct(product) {
     description_en: product.description,
     description_he: product.description,
     category: product.category,
+    subCategory: product.subCategory || "",
     price: product.price,
     sku: product.sku || "",
     isActive: product.isActive,

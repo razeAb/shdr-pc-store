@@ -12,6 +12,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
     title: product?.title ?? product?.name ?? "",
     price: product?.price ?? "",
     category: product?.category ?? "",
+    subCategory: product?.subCategory ?? "",
     description: product?.description ?? "",
     sku: product?.sku ?? "",
     tags: Array.isArray(product?.tags) ? product.tags.join(", ") : "",
@@ -157,6 +158,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
           images: form.images,
           videos: form.videos,
           category: form.category?.trim(),
+          subCategory: form.subCategory?.trim(),
           description: form.description?.trim(),
           tags: form.tags
             .split(",")
@@ -164,7 +166,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             .filter(Boolean),
           isActive: !!form.isActive,
         },
-        ["title", "price", "sku", "category", "description", "tags", "images", "videos", "isActive"]
+        ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive"]
       );
 
       const response = await api.put(`/api/products/${product._id}`, payload, {
@@ -375,6 +377,16 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
               <option value={form.category}>{form.category}</option>
             ) : null}
           </select>
+
+          <label className="block text-sm">{t({ ar: "الفئة الفرعية", he: "תת קטגוריה" })}</label>
+          <input
+            type="text"
+            name="subCategory"
+            value={form.subCategory}
+            onChange={handleChange}
+            placeholder={t({ ar: "الفئة الفرعية", he: "תת קטגוריה" })}
+            className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
+          />
 
           <label className="block text-sm">{t({ ar: "الوصف (اختياري)", he: "תיאור (אופציונלי)" })}</label>
           <textarea

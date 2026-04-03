@@ -9,6 +9,7 @@ const productSchema = new mongoose.Schema(
         price: { type: Number, required: true },
         sku: { type: String, default: "" },
         category: { type: String, default: "" },
+        subCategory: { type: String, default: "" },
         isActive: { type: Boolean, default: true },
         tags: [{ type: String }],
     },

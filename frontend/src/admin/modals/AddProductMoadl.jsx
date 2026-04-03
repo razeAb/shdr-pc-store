@@ -9,6 +9,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
     title: "",
     sku: "",
     category: "",
+    subCategory: "",
     price: "",
     description: "",
     tags: "",
@@ -53,6 +54,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
         price,
         sku: form.sku,
         category: form.category,
+        subCategory: form.subCategory,
         isActive: form.isActive,
         images: form.images,
         videos: form.videos,
@@ -308,6 +310,14 @@ const AddProductModal = ({ onClose, onAdd }) => {
             </option>
           ))}
         </select>
+
+        <input
+          name="subCategory"
+          placeholder={t({ ar: "الفئة الفرعية", he: "תת קטגוריה" })}
+          onChange={handleChange}
+          value={form.subCategory}
+          className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 mb-3"
+        />
 
         <input
           name="price"

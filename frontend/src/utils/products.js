@@ -20,7 +20,6 @@ export const HOMEPAGE_CATEGORIES = [
   "Networking",
   "Apple",
   "Samsung",
-  "Phones",
   "Mobile & Tablets",
   "Kids Tech"
 ];
@@ -42,8 +41,7 @@ export const CATEGORY_SUBCATEGORIES = {
   "Mobile & Tablets": ["Smartphones", "Tablets", "Tablet Accessories", "Earbuds", "AirPods Cases", "Smartwatches", "Watch Bands"],
   "Kids Tech": ["Kids Tablets", "Educational Game Consoles"],
   Apple: ["iPhone", "iPad", "MacBook", "Apple Watch", "AirPods", "Accessories"],
-  Samsung: ["Galaxy Phones", "Galaxy Tablets", "Galaxy Watch", "Galaxy Buds", "Accessories"],
-  Phones: ["Smartphones", "Phone Accessories"]
+  Samsung: ["Galaxy Phones", "Galaxy Tablets", "Galaxy Watch", "Galaxy Buds", "Accessories"]
 };
 
 export const CATEGORY_LABELS = {
@@ -55,7 +53,6 @@ export const CATEGORY_LABELS = {
   Networking: { en: "Networking", he: "רשתות" },
   Apple: { en: "Apple", he: "אפל" },
   Samsung: { en: "Samsung", he: "סמסונג" },
-  Phones: { en: "Phones", he: "טלפונים" },
   "Mobile & Tablets": { en: "Mobile & Tablets", he: "מובייל וטאבלטים" },
   "Kids Tech": { en: "Kids Tech", he: "טכנולוגיה לילדים" }
 };
@@ -103,8 +100,7 @@ export const SUBCATEGORY_LABELS = {
   "Galaxy Phones": { en: "Galaxy Phones", he: "טלפוני גלקסי" },
   "Galaxy Tablets": { en: "Galaxy Tablets", he: "טאבלטים גלקסי" },
   "Galaxy Watch": { en: "Galaxy Watch", he: "שעון גלקסי" },
-  "Galaxy Buds": { en: "Galaxy Buds", he: "גלקסי באדס" },
-  "Phone Accessories": { en: "Phone Accessories", he: "אביזרי טלפון" }
+  "Galaxy Buds": { en: "Galaxy Buds", he: "גלקסי באדס" }
 };
 
 export const SPEC_LABELS = {
@@ -241,7 +237,7 @@ const resolveSubcategory = (text, mainCategory) => {
 };
 
 export const categorizeProduct = (product) => {
-  const text = (product?.title || "").toLowerCase();
+  const text = toSearchText(product);
   const includesAny = (value, keywords) => keywords.some((keyword) => value.includes(keyword));
 
   const gamingBrands = ["razer", "corsair", "logitech", "steelseries", "hyperx", "scorpius"];
@@ -264,30 +260,42 @@ export const categorizeProduct = (product) => {
       subCategory = sub || "";
     }
   };
+  const addMobileMatch = (sub) => addMatch("Mobile & Tablets", sub);
 
   if (includesAny(text, appleBrands)) {
-    if (includesAny(text, ["iphone", "אייפון"])) addMatch("Apple", "iPhone");
-    else if (includesAny(text, ["ipad", "אייפד"])) addMatch("Apple", "iPad");
-    else if (includesAny(text, ["macbook", "מקבוק"])) addMatch("Apple", "MacBook");
-    else if (includesAny(text, ["watch"])) addMatch("Apple", "Apple Watch");
-    else if (includesAny(text, ["airpods"])) addMatch("Apple", "AirPods");
+    if (includesAny(text, ["iphone", "אייפון"])) {
+      addMatch("Apple", "iPhone");
+      addMobileMatch("Smartphones");
+    } else if (includesAny(text, ["ipad", "אייפד"])) {
+      addMatch("Apple", "iPad");
+      addMobileMatch("Tablets");
+    } else if (includesAny(text, ["macbook", "מקבוק"])) {
+      addMatch("Apple", "MacBook");
+    } else if (includesAny(text, ["watch"])) {
+      addMatch("Apple", "Apple Watch");
+      addMobileMatch("Smartwatches");
+    } else if (includesAny(text, ["airpods"])) {
+      addMatch("Apple", "AirPods");
+      addMobileMatch("Earbuds");
+    }
     else addMatch("Apple", "Accessories");
   }
 
   if (includesAny(text, samsungBrands)) {
-    if (includesAny(text, ["tablet", "tab", "טאבלט"])) addMatch("Samsung", "Galaxy Tablets");
-    else if (includesAny(text, ["watch", "gear", "שעון"])) addMatch("Samsung", "Galaxy Watch");
-    else if (includesAny(text, ["buds"])) addMatch("Samsung", "Galaxy Buds");
-    else if (includesAny(text, ["phone", "galaxy", "טלפון", "סמארטפון"])) addMatch("Samsung", "Galaxy Phones");
-    else addMatch("Samsung", "Accessories");
-  }
-
-  if (includesAny(text, ["phone", "smartphone", "טלפון", "סמארטפון"])) {
-    if (includesAny(text, ["case", "cover", "מטען", "כיסוי", "charger"])) {
-      addMatch("Phones", "Phone Accessories");
-    } else {
-      addMatch("Phones", "Smartphones");
+    if (includesAny(text, ["tablet", "tab", "טאבלט"])) {
+      addMatch("Samsung", "Galaxy Tablets");
+      addMobileMatch("Tablets");
+    } else if (includesAny(text, ["watch", "gear", "שעון"])) {
+      addMatch("Samsung", "Galaxy Watch");
+      addMobileMatch("Smartwatches");
+    } else if (includesAny(text, ["buds"])) {
+      addMatch("Samsung", "Galaxy Buds");
+      addMobileMatch("Earbuds");
+    } else if (includesAny(text, ["phone", "galaxy", "טלפון", "סמארטפון"])) {
+      addMatch("Samsung", "Galaxy Phones");
+      addMobileMatch("Smartphones");
     }
+    else addMatch("Samsung", "Accessories");
   }
 
   if (includesAny(text, sonyBrands)) {
@@ -312,6 +320,22 @@ export const categorizeProduct = (product) => {
       addMatch("Networking", "Access Points / Range Extenders");
     } else if (includesAny(text, ["כרטיס רשת"])) addMatch("Networking", "Network Cards");
     else addMatch("Networking", "Routers");
+  }
+
+  if (includesAny(text, ["smartphone", "phone", "טלפון", "סמארטפון", "redmi", "xiaomi", "poco"])) {
+    addMobileMatch("Smartphones");
+  }
+
+  if (includesAny(text, ["tablet", "ipad", "טאבלט"])) {
+    addMobileMatch("Tablets");
+  }
+
+  if (includesAny(text, ["airpods", "earbuds", "buds"])) {
+    addMobileMatch("Earbuds");
+  }
+
+  if (includesAny(text, ["watch", "smartwatch", "שעון"])) {
+    addMobileMatch("Smartwatches");
   }
 
   if (
@@ -409,6 +433,7 @@ export const normalizeProduct = (product) => {
     tags: Array.isArray(product?.tags) ? product.tags : [],
     sku: product?.sku || "",
     category: product?.category || "",
+    subCategory: product?.subCategory || "",
     image: pickImage(product?.images),
     images: Array.isArray(product?.images) ? product.images : [],
     videos: Array.isArray(product?.videos) ? product.videos : []

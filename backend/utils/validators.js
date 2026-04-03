@@ -32,6 +32,7 @@ export const productSchema = z.object({
   price: z.number().nonnegative(),
   sku: z.string().max(120).optional().default(""),
   category: z.string().max(200).optional().default(""),
+  subCategory: z.string().max(200).optional().default(""),
   isActive: z.boolean().optional().default(true),
   tags: z.array(z.string().min(1).max(50)).optional().default([]),
   ingredients: z.string().max(5000).optional().default(""),
