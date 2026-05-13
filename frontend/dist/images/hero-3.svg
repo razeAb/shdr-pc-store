@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700" role="img" aria-label="Hero placeholder">
+  <defs>
+    <linearGradient id="h3" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1b2338" />
+      <stop offset="100%" stop-color="#7e5bef" />
+    </linearGradient>
+  </defs>
+  <rect width="1400" height="700" fill="url(#h3)" />
+  <circle cx="320" cy="220" r="170" fill="#f25c4c" opacity="0.75" />
+  <text x="120" y="380" fill="#f7f4ea" font-family="Arial, sans-serif" font-size="58">SKYLINE SYNDICATE</text>
+  <text x="120" y="450" fill="#f7f4ea" font-family="Arial, sans-serif" font-size="28">Weekly deals live now</text>
+</svg>
