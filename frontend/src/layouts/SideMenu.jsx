@@ -1,6 +1,6 @@
 import React from "react";
-import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Package, ClipboardList, Sparkles, TicketPercent, History } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { LayoutDashboard, Package, ClipboardList, Sparkles, TicketPercent, History, LogOut } from "lucide-react";
 
 const links = [
   { to: "/admin", label: "לוח בקרה", icon: LayoutDashboard },
@@ -12,6 +12,17 @@ const links = [
 ];
 
 export default function SideMenu({ logoSrc, brand = "חנות SHDR", onClose }) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("shdr-token");
+    localStorage.removeItem("shdr-role");
+    localStorage.removeItem("shdr-auth-time");
+    onClose?.();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <aside className="w-72 h-full bg-[#11131a] border-r border-white/10 p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -69,6 +80,15 @@ export default function SideMenu({ logoSrc, brand = "חנות SHDR", onClose }) 
           חזרה לחנות
         </NavLink>
       </nav>
+
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="mt-auto inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/70 transition hover:bg-white/10 hover:text-white"
+      >
+        <LogOut size={16} />
+        התנתקות
+      </button>
     </aside>
   );
 }
