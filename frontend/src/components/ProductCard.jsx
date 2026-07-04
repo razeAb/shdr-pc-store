@@ -2,13 +2,17 @@ import { Link } from "react-router-dom";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
 
-export default function ProductCard({ product, onAdd }) {
+export default function ProductCard({ product, onAdd, badge }) {
   const hasDiscount = Number.isFinite(product.salePrice);
   const { t } = useLang();
   return (
     <article className="product-card">
       <Link className="product-image" to={`/product/${product.slug}`}>
-        {hasDiscount && <span className="badge">{t({ en: "On sale", he: "בהנחה" })}</span>}
+        {hasDiscount ? (
+          <span className="badge">{t({ en: "On sale", he: "בהנחה" })}</span>
+        ) : badge ? (
+          <span className="badge badge--info">{badge}</span>
+        ) : null}
         <img src={product.image} alt={product.title} loading="lazy" />
       </Link>
       <div className="product-body">

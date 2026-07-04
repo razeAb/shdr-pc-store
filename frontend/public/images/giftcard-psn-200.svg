@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="960" viewBox="0 0 720 960" role="img" aria-label="PlayStation Store digital gift card, 200 NIS">
+  <defs>
+    <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0b1650" />
+      <stop offset="55%" stop-color="#123a9c" />
+      <stop offset="100%" stop-color="#2f7bff" />
+    </linearGradient>
+  </defs>
+  <rect width="720" height="960" fill="url(#g)" />
+  <circle cx="560" cy="150" r="140" fill="#00d1ff" opacity="0.18" />
+  <circle cx="120" cy="820" r="180" fill="#ffffff" opacity="0.06" />
+  <text x="90" y="140" fill="#f5f7ff" font-family="Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="1">PlayStation Store</text>
+  <text x="90" y="180" fill="#c9d6ff" font-family="Arial, sans-serif" font-size="26">שובר דיגיטלי לטעינת ארנק</text>
+  <rect x="90" y="420" width="540" height="220" rx="28" fill="#0b0b0b" opacity="0.35" />
+  <text x="360" y="560" fill="#ffffff" font-family="Arial, sans-serif" font-size="110" font-weight="700" text-anchor="middle">₪200</text>
+  <text x="90" y="880" fill="#c9d6ff" font-family="Arial, sans-serif" font-size="24">Digital Wallet Top-up</text>
+</svg>

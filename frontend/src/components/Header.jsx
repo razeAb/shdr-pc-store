@@ -1,6 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import SearchBar from "./SearchBar.jsx";
+import CategoryNav from "./CategoryNav.jsx";
+import MobileNav from "./MobileNav.jsx";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
 
@@ -36,6 +38,7 @@ export default function Header() {
   return (
     <header className="site-header">
       <div className="header-inner">
+        <MobileNav />
         <Link className="logo" to="/" aria-label={t({ en: "SHDR Game Store home", he: "דף הבית של SHDR" })}>
           <span aria-hidden="true" className="logo-mark">
             <img className="logo-image" src="/logo.jpeg" alt="" />
@@ -86,6 +89,9 @@ export default function Header() {
             </svg>
           </button>
         </div>
+      </div>
+      <div className="header-nav-row">
+        <CategoryNav />
       </div>
     </header>
   );
