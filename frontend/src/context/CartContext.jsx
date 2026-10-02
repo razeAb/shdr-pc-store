@@ -20,6 +20,7 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const addItem = (product) => {
+    if (!(Number(product?.salePrice ?? product?.price) > 0)) return;
     setItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {

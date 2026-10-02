@@ -6,6 +6,8 @@ export function formatCurrency(value, currency = "USD", locale) {
     return new Intl.NumberFormat(resolvedLocale, {
       style: "currency",
       currency,
+      // Whole prices read cleaner without ".00"; keep agorot when present.
+      minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
       maximumFractionDigits: 2
     }).format(amount);
   } catch {

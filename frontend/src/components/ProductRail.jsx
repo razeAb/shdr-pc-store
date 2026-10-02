@@ -12,7 +12,7 @@ import ProductCard from "./ProductCard.jsx";
  * tabs: [{ key, label: {en,he}, getItems: (products) => Product[], getBadge?: (product) => string }]
  */
 export default function ProductRail({ title, tabs, onAdd }) {
-  const { products, loading } = useProducts();
+  const { products, loading, error, refresh } = useProducts();
   const { t } = useLang();
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
 
@@ -23,7 +23,7 @@ export default function ProductRail({ title, tabs, onAdd }) {
     return activeTab.getItems(products) || [];
   }, [products, activeTab]);
 
-  if (loading) return null;
+  if (loading) return <section className="product-rail" aria-busy="true" aria-label={title}><h2>{title}</h2><div className="product-loading">{[0, 1, 2, 3].map((item) => <div key={item} />)}</div></section>;
 
   return (
     <section className="product-rail" aria-labelledby={`rail-${title.replace(/\s+/g, "-")}`}>
@@ -44,7 +44,9 @@ export default function ProductRail({ title, tabs, onAdd }) {
           ))}
         </div>
       </div>
-      {items.length === 0 ? (
+      {error ? (
+        <div className="catalog-error"><p>{t({ en: "We couldn’t load the products. Please try again.", he: "לא הצלחנו לטעון את המוצרים. אפשר לנסות שוב." })}</p><button type="button" className="secondary-button" onClick={() => refresh()}>{t({ en: "Try again", he: "ניסיון נוסף" })}</button></div>
+      ) : items.length === 0 ? (
         <p className="filter-empty">{t({ en: "No products yet.", he: "אין מוצרים עדיין." })}</p>
       ) : (
         <div className="product-rail__track">

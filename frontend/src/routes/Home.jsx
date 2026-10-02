@@ -1,36 +1,20 @@
 import { Link, useOutletContext } from "react-router-dom";
-import { useMemo } from "react";
-import { Baby, Gamepad2, Laptop, Monitor, Smartphone, Tablet, Watch, Wifi } from "lucide-react";
+
+import { ArrowUpLeft, Baby, Gamepad2, Headphones, Laptop, Monitor, PcCase, Smartphone, Tablet, Watch, Wifi, Zap } from "lucide-react";
 import {
   CATEGORY_LABELS,
   HOMEPAGE_CATEGORIES,
-  PRODUCT_TYPE_LABELS,
   getBestSellers,
-  getByCategorySortedByPrice,
   getByProductType,
-  getCheapestByProductType,
   getDeals,
-  getFeaturedByCategory,
   getNewArrivals
 } from "../utils/products.js";
 import PromoBanner from "../components/PromoBanner.jsx";
-import HeroCarousel from "../components/HeroCarousel.jsx";
+
 import ProductRail from "../components/ProductRail.jsx";
 import BrandStrip from "../components/BrandStrip.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
-import { useProducts } from "../context/ProductsContext.jsx";
-
-const PLATFORM_TABS = [
-  { key: "PC Gaming", label: { en: "PC Gaming", he: "גיימינג למחשב" } },
-  { key: "PlayStation", label: { en: "PlayStation", he: "פלייסטיישן" } },
-  { key: "Xbox", label: { en: "Xbox", he: "אקסבוקס" } },
-  { key: "Nintendo", label: { en: "Nintendo", he: "נינטנדו" } }
-].map((tab) => ({
-  key: tab.key,
-  label: tab.label,
-  getItems: (products) => getByCategorySortedByPrice(products, tab.key)
-}));
 
 const GEAR_TABS = [
   { key: "Keyboard", label: { en: "Keyboards", he: "מקלדות" } },
@@ -49,19 +33,17 @@ const FEATURED_TABS = [
   { key: "deals", label: { en: "Deals", he: "מבצעים" }, getItems: getDeals }
 ];
 
-// Hero banner spotlights the best-selling item per platform, in this order.
-const HERO_CATEGORIES = ["PlayStation", "Xbox", "Nintendo"];
 
 export default function Home() {
   const { onToast } = useOutletContext();
   const { addItem } = useCart();
   const { t } = useLang();
-  const { products } = useProducts();
   const categoryIcons = {
+    "Gaming PCs": PcCase,
     "PC Gaming": Gamepad2,
     PlayStation: "/svg/playstation-svgrepo-com.svg",
     Xbox: "/svg/Xbox_logo_2012_cropped.svg.png",
-    Nintendo: "/svg/nintendo-2.svg",
+    Nintendo: Gamepad2,
     "Networking Equipment": Wifi,
     "Mobile Phones": Smartphone,
     Tablets: Tablet,
@@ -75,51 +57,33 @@ export default function Home() {
     onToast(t({ en: "Added to cart", he: "נוסף לעגלה" }));
   };
 
-  const categoryTiles = getCheapestByProductType(products);
 
-  const heroSlides = useMemo(
-    () =>
-      getFeaturedByCategory(products, HERO_CATEGORIES).map(({ category, product }) => ({
-        id: product.id,
-        image: product.image,
-        link: `/product/${product.slug}`,
-        alt: { en: product.title, he: product.title },
-        eyebrow: CATEGORY_LABELS[category] || category,
-        title: product.title,
-        price: product.price
-      })),
-    [products]
-  );
+
 
   return (
     <>
       <PromoBanner />
       <section className="hero-section">
-        <HeroCarousel slides={heroSlides} />
-        <div className="promo-tiles" aria-label={t({ en: "Promotions", he: "מבצעים" })}>
-          <Link className="promo-tile" to="/search?q=gift%20cards">
-            <div className="promo-icon" aria-hidden="true">
-              GC
+        <div className="store-hero">
+          <div className="store-hero__copy">
+            <p className="hero-kicker"><span /> SHDR / NEXT LEVEL TECH</p>
+            <h1>{t({ en: "Your next level.", he: "הרמה הבאה שלך." })}<br /><em>{t({ en: "Starts here.", he: "מתחילה כאן." })}</em></h1>
+            <p className="hero-description">{t({ en: "The consoles, gear and everyday tech that make your setup yours. Find your next upgrade.", he: "הקונסולות, הציוד והטכנולוגיה שהופכים כל סטאפ לשלך. זה הזמן לשדרוג הבא." })}</p>
+            <div className="hero-actions">
+              <Link className="primary-button" to="/search">{t({ en: "Explore the store", he: "לכל המוצרים" })}<ArrowUpLeft size={18} /></Link>
+              <Link className="hero-secondary" to="/search?category=Gaming%20PCs">{t({ en: "Gaming PCs", he: "למחשבי הגיימינג" })}<span aria-hidden="true">↗</span></Link>
             </div>
-            <div>
-              <h3>{t({ en: "Gift cards", he: "כרטיסי מתנה" })}</h3>
-              <p>{t({ en: "Send digital codes in minutes.", he: "שליחת קודים דיגיטליים תוך דקות." })}</p>
-            </div>
-          </Link>
-          <Link className="promo-tile" to="/search?q=clearance">
-            <div className="promo-icon" aria-hidden="true">
-              CL
-            </div>
-            <div>
-              <h3>{t({ en: "Clearance", he: "חיסול מלאי" })}</h3>
-              <p>{t({ en: "Last chance deals while stocks last.", he: "הזדמנות אחרונה עד גמר המלאי." })}</p>
-            </div>
-          </Link>
+            <div className="hero-platforms"><span>PLAYSTATION</span><span>XBOX</span><span>NINTENDO</span><span>PC GAMING</span></div>
+          </div>
+          <div className="hero-scene" aria-hidden="true">
+            <img className="hero-photo" src="/images/hero-pc.jpg" alt="" fetchpriority="high" />
+            <div className="scene-tag"><span className="scene-tag__icon"><Zap size={20} /></span><div><strong>{t({ en: "Made for your next move", he: "מוכנים למהלך הבא שלך" })}</strong><small>PLAY. CREATE. REPEAT.</small></div></div>
+          </div>
         </div>
         <section className="category-section" aria-labelledby="category-title">
           <div className="section-heading">
             <h2 id="category-title">{t({ en: "Shop by category", he: "קנייה לפי קטגוריה" })}</h2>
-            <p>{t({ en: "Explore store departments inspired by top tech retailers.", he: "מחלקות מרכזיות בהשראת חנויות טכנולוגיה מובילות." })}</p>
+            <p>{t({ en: "Find your next upgrade.", he: "כל מה שצריך, בדיוק במקום הנכון." })}</p>
           </div>
           <div className="category-grid">
             {HOMEPAGE_CATEGORIES.map((name) => {
@@ -144,28 +108,16 @@ export default function Home() {
       </section>
 
       <ProductRail title={t({ en: "Featured Products", he: "מוצרים מומלצים" })} tabs={FEATURED_TABS} onAdd={handleAdd} />
-      <ProductRail title={t({ en: "Shop By Platform", he: "קנייה לפי פלטפורמה" })} tabs={PLATFORM_TABS} onAdd={handleAdd} />
+      <section className="setup-banner">
+        <div className="setup-banner__icon" aria-hidden="true"><Headphones size={72} strokeWidth={1} /></div>
+        <div><p className="eyebrow">FIND YOUR EDGE</p><h2>{t({ en: "Small upgrades. Big difference.", he: "שדרוג קטן. הבדל גדול." })}</h2><p>{t({ en: "Make every click, every sound and every session count.", he: "כל קליק, כל צליל, כל משחק. הציוד שעושה את ההבדל." })}</p></div>
+        <Link className="secondary-button" to="/search?type=Headset">{t({ en: "Explore headsets", he: "לכל האוזניות" })}<ArrowUpLeft size={18} /></Link>
+      </section>
       <ProductRail title={t({ en: "Gaming Gear", he: "ציוד גיימינג" })} tabs={GEAR_TABS} onAdd={handleAdd} />
 
       <BrandStrip />
 
-      <section className="category-tile-section" aria-labelledby="browse-category-title">
-        <div className="section-heading">
-          <h2 id="browse-category-title">{t({ en: "Browse By Category", he: "עיון לפי קטגוריה" })}</h2>
-        </div>
-        <div className="category-tile-grid">
-          {categoryTiles.map(({ productType, product }) => (
-            <Link
-              key={productType}
-              className="category-tile"
-              to={`/search?type=${encodeURIComponent(productType)}`}
-            >
-              <img className="category-tile__image" src={product.image} alt="" loading="lazy" />
-              <span className="category-tile__label">{t(PRODUCT_TYPE_LABELS[productType] || productType)}</span>
-            </Link>
-          ))}
-        </div>
-      </section>
+
     </>
   );
 }

@@ -20,6 +20,58 @@ async function ensureCategory(name) {
   );
 }
 
+/**
+ * Returns the product already using this sku (barcode), ignoring excludeId.
+ */
+async function findSkuConflict(sku, excludeId) {
+  if (!sku) return null;
+  const filter = { sku };
+  if (excludeId) filter._id = { $ne: excludeId };
+  return Product.findOne(filter, { _id: 1, title: 1 }).lean();
+}
+
+function skuConflictResponse(res, conflict) {
+  return res.status(409).json({
+    message: `מק"ט / ברקוד זה כבר קיים במוצר: ${conflict.title}`,
+    conflictId: conflict._id,
+  });
+}
+
+const GIFT_CARD_TYPE = "Gift Card";
+
+// Spec filters for computers: query param -> product field.
+const SPEC_FILTERS = {
+  cpuBrand: "specs.cpuBrand",
+  cpu: "specs.cpu",
+  gpu: "specs.gpu",
+  ram: "specs.ram",
+  storage: "specs.storage",
+};
+
+// Price buckets used by the storefront price filter (must match
+// PRICE_RANGE_ORDER in frontend/src/utils/products.js).
+const PRICE_RANGES = [
+  [100, "Under ₪100"],
+  [300, "₪100 - ₪299"],
+  [600, "₪300 - ₪599"],
+  [1500, "₪600 - ₪1,499"],
+  [Infinity, "₪1,500+"],
+];
+
+function getPriceRange(price) {
+  if (!(price > 0)) return "";
+  return PRICE_RANGES.find(([limit]) => price < limit)[1];
+}
+
+/**
+ * Keeps priceRange in sync with price so products land in the right price
+ * filter without anyone setting it by hand.
+ */
+function withPriceRange(data) {
+  if (data.price === undefined) return data;
+  return { ...data, priceRange: getPriceRange(data.price) };
+}
+
 const SORT_OPTIONS = {
   price_asc: { price: 1 },
   price_desc: { price: -1 },
@@ -62,6 +114,10 @@ function buildProductFilter(query, excludeDimension) {
   if (brand.length && excludeDimension !== "brand") filter.brand = { $in: brand };
   if (connectivity.length && excludeDimension !== "connectivity") filter.connectivity = { $in: connectivity };
   if (price.length && excludeDimension !== "priceRange") filter.priceRange = { $in: price };
+  Object.entries(SPEC_FILTERS).forEach(([param, field]) => {
+    const values = parseListParam(query[param]);
+    if (values.length && excludeDimension !== field) filter[field] = { $in: values };
+  });
 
   return filter;
 }
@@ -76,6 +132,12 @@ productRouter.get("/", async (req, res, next) => {
     const sort = SORT_OPTIONS[req.query.sort] || SORT_OPTIONS.newest;
 
     const products = await Product.find(filter).sort(sort).lean();
+    // Default "recommended" order: newest first, but the near-identical gift
+    // cards go last so real products lead the listing.
+    if (!SORT_OPTIONS[req.query.sort]) {
+      const isGiftCard = (product) => product.productType === GIFT_CARD_TYPE;
+      return res.json([...products.filter((p) => !isGiftCard(p)), ...products.filter(isGiftCard)]);
+    }
     res.json(products);
   } catch (err) {
     next(err);
@@ -91,8 +153,8 @@ productRouter.get("/", async (req, res, next) => {
  */
 productRouter.get("/facets", async (req, res, next) => {
   try {
-    const dimensions = ["productType", "brand", "connectivity", "priceRange"];
-    const [productType, brand, connectivity, priceRange] = await Promise.all(
+    const dimensions = ["productType", "brand", "connectivity", "priceRange", ...Object.values(SPEC_FILTERS)];
+    const [productType, brand, connectivity, priceRange, ...specCounts] = await Promise.all(
       dimensions.map((dimension) =>
         Product.aggregate([
           { $match: buildProductFilter(req.query, dimension) },
@@ -104,7 +166,8 @@ productRouter.get("/facets", async (req, res, next) => {
       )
     );
 
-    res.json({ productType, brand, connectivity, priceRange });
+    const specs = Object.fromEntries(Object.keys(SPEC_FILTERS).map((param, i) => [param, specCounts[i]]));
+    res.json({ productType, brand, connectivity, priceRange, specs });
   } catch (err) {
     next(err);
   }
@@ -159,7 +222,10 @@ productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
       return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
     }
 
-    const created = await Product.create(parsed.data);
+    const conflict = await findSkuConflict(parsed.data.sku);
+    if (conflict) return skuConflictResponse(res, conflict);
+
+    const created = await Product.create(withPriceRange(parsed.data));
     await ensureCategory(created.category);
     res.status(201).json(created);
   } catch (err) {
@@ -181,7 +247,10 @@ productRouter.put("/:id", requireAuth, requireAdmin, async (req, res, next) => {
       return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
     }
 
-    const updated = await Product.findByIdAndUpdate(id, parsed.data, { new: true });
+    const conflict = await findSkuConflict(parsed.data.sku, id);
+    if (conflict) return skuConflictResponse(res, conflict);
+
+    const updated = await Product.findByIdAndUpdate(id, withPriceRange(parsed.data), { new: true });
     if (!updated) return res.status(404).json({ message: "Product not found" });
     await ensureCategory(updated.category);
 
@@ -209,7 +278,10 @@ productRouter.patch("/:id/edit", requireAuth, requireAdmin, async (req, res, nex
       return res.status(400).json({ message: "Invalid input", errors: parsed.error.flatten() });
     }
 
-    const updated = await Product.findByIdAndUpdate(id, parsed.data, {
+    const conflict = await findSkuConflict(parsed.data.sku, id);
+    if (conflict) return skuConflictResponse(res, conflict);
+
+    const updated = await Product.findByIdAndUpdate(id, withPriceRange(parsed.data), {
       new: true,
       runValidators: true,
     });

@@ -3,6 +3,8 @@ import api from "../../api";
 import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "../../components/MediaCarousel.jsx";
 import { useLang } from "../../context/LangContext";
+import { getDescriptionWarning } from "../../utils/products";
+import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORY } from "./SpecsFields.jsx";
 
 const pick = (obj, keys) => keys.reduce((acc, k) => (obj[k] !== undefined ? { ...acc, [k]: obj[k] } : acc), {});
 
@@ -19,6 +21,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
     isActive: product?.isActive ?? true,
     images: product?.images ?? (product?.image ? [product.image] : []),
     videos: product?.videos ?? [],
+    specs: { ...EMPTY_SPECS, ...product?.specs },
   };
 
   const [form, setForm] = useState(initial);
@@ -165,8 +168,9 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             .map((tag) => tag.trim())
             .filter(Boolean),
           isActive: !!form.isActive,
+          specs: form.category === SPECS_CATEGORY ? form.specs : undefined,
         },
-        ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive"]
+        ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive", "specs"]
       );
 
       const response = await api.put(`/api/products/${product._id}`, payload, {
@@ -388,6 +392,10 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
           />
 
+          {form.category === SPECS_CATEGORY && (
+            <SpecsFields specs={form.specs} onChange={(specs) => setForm((prev) => ({ ...prev, specs }))} />
+          )}
+
           <label className="block text-sm">{t({ ar: "الوصف (اختياري)", he: "תיאור (אופציונלי)" })}</label>
           <textarea
             name="description"
@@ -396,6 +404,9 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             placeholder={t({ ar: "وصف للطبق / المنتج", he: "תיאור למנה / מוצר" })}
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 min-h-[80px]"
           />
+          {getDescriptionWarning(form.title, form.description) && (
+            <p className="text-yellow-400 text-xs">⚠️ {t(getDescriptionWarning(form.title, form.description))}</p>
+          )}
 
           <label className="block text-sm">{t({ ar: "وسوم (افصل بفواصل)", he: "תגיות (מופרדות בפסיקים)" })}</label>
           <input

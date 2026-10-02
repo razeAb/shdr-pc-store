@@ -1,14 +1,14 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap");
 
 :root {
   --color-ink: #0b0b0b;
   --color-ink-soft: #121212;
   --color-sand: #f5f7ff;
-  --color-accent: #00d1ff;
-  --color-accent-dark: #2f7bff;
-  --color-teal: #2f7bff;
+  --color-accent: #66e4ec;
+  --color-accent-dark: #279ca7;
+  --color-teal: #279ca7;
   --color-gold: #ff6a2b;
-  --color-lavender: #4cff6a;
+  --color-lavender: #66e4ec;
   --color-border: rgba(245, 247, 255, 0.12);
   --color-shadow: rgba(0, 0, 0, 0.35);
 
@@ -26,7 +26,7 @@
   --space-8: 48px;
   --space-9: 64px;
 
-  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Heebo", "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", "Courier New", monospace;
   --header-height: 88px;
 }

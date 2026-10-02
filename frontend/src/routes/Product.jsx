@@ -1,9 +1,21 @@
-import { useParams, useOutletContext } from "react-router-dom";
+import { Link, useParams, useOutletContext } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { ChevronLeft, ShoppingBag, Store, Truck } from "lucide-react";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+import { PRICE_COMING_SOON, getCategoryLabel, getProductLabel, getSimilarProducts, hasPrice } from "../utils/products.js";
+
+const getMediaItems = (product) => {
+  if (!product) return [];
+  const images = product.images.length > 0 ? product.images : product.image ? [product.image] : [];
+  return [
+    ...images.map((src) => ({ type: "image", src })),
+    ...product.videos.map((src) => ({ type: "video", src }))
+  ];
+};
 
 export default function Product() {
   const { slug } = useParams();
@@ -11,7 +23,24 @@ export default function Product() {
   const { addItem } = useCart();
   const { products, loading, error } = useProducts();
   const { t } = useLang();
-  const product = products.find((item) => item.slug === slug);
+  // Slugs embed the title, so fall back to the id suffix when a title was
+  // renamed after the link was shared.
+  const idSuffix = slug?.split("-").pop();
+  const product =
+    products.find((item) => item.slug === slug) ||
+    products.find((item) => idSuffix && item.id.endsWith(idSuffix));
+
+  // All hooks run before the early returns below so their order never changes.
+  const mediaItems = useMemo(() => getMediaItems(product), [product]);
+  const similarProducts = useMemo(
+    () => (product ? getSimilarProducts(products, product) : []),
+    [products, product]
+  );
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [product?.id]);
 
   if (loading) {
     return (
@@ -39,83 +68,119 @@ export default function Product() {
     );
   }
 
-  const handleAdd = () => {
-    addItem(product);
+  const handleAdd = (item = product) => {
+    addItem(item);
     onToast(t({ en: "Added to cart", he: "נוסף לעגלה" }));
   };
 
-  const mediaItems = useMemo(() => {
-    const images = Array.isArray(product.images) && product.images.length > 0
-      ? product.images
-      : product.image
-        ? [product.image]
-        : [];
-    const videos = Array.isArray(product.videos) ? product.videos : [];
-    return [
-      ...images.map((src) => ({ type: "image", src })),
-      ...videos.map((src) => ({ type: "video", src }))
-    ];
-  }, [product.image, product.images, product.videos]);
-
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [mediaItems.length]);
-
-  useEffect(() => {
-    if (mediaItems.length <= 1) return undefined;
-    const timer = window.setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % mediaItems.length);
-    }, 5000);
-    return () => window.clearInterval(timer);
-  }, [mediaItems.length]);
-
   const activeMedia = mediaItems[activeIndex];
+  const categoryLabel = getCategoryLabel(product.category, t);
+  const hasDiscount = Number.isFinite(product.salePrice);
+  const isPriced = hasPrice(product);
 
   return (
-    <section className="product-detail" aria-labelledby="product-title">
-      <div className="product-media">
-        {activeMedia?.type === "video" ? (
-          <video
-            key={activeMedia.src}
-            className="product-media__asset"
-            src={activeMedia.src}
-            controls
-            preload="metadata"
-          />
-        ) : (
-          <img
-            key={activeMedia?.src}
-            className="product-media__asset"
-            src={activeMedia?.src || product.image}
-            alt={product.title}
-            loading="lazy"
-          />
+    <>
+      <nav className="breadcrumbs" aria-label={t({ en: "Breadcrumbs", he: "ניווט" })}>
+        <Link to="/">{t({ en: "Home", he: "דף הבית" })}</Link>
+        {categoryLabel && (
+          <>
+            <ChevronLeft size={14} aria-hidden="true" />
+            <Link to={`/search?category=${encodeURIComponent(product.category)}`}>{categoryLabel}</Link>
+          </>
         )}
-        {mediaItems.length > 1 && (
-          <div className="product-media__dots" aria-hidden="true">
-            {mediaItems.map((item, index) => (
-              <span
-                key={`${item.type}-${item.src}`}
-                className={index === activeIndex ? "dot is-active" : "dot"}
+      </nav>
+
+      <section className="product-detail" aria-labelledby="product-title">
+        <div className="product-media">
+          <div className="product-media__stage">
+            {activeMedia?.type === "video" ? (
+              <video
+                key={activeMedia.src}
+                className="product-media__asset"
+                src={activeMedia.src}
+                controls
+                preload="metadata"
               />
+            ) : (
+              <img
+                key={activeMedia?.src}
+                className="product-media__asset"
+                src={activeMedia?.src || product.image}
+                alt={product.title}
+              />
+            )}
+          </div>
+          {mediaItems.length > 1 && (
+            <div className="product-media__thumbs">
+              {mediaItems.map((item, index) => (
+                <button
+                  key={`${item.type}-${item.src}`}
+                  type="button"
+                  className={index === activeIndex ? "product-media__thumb is-active" : "product-media__thumb"}
+                  onClick={() => setActiveIndex(index)}
+                  aria-label={t({ en: `Show media ${index + 1}`, he: `הצגת מדיה ${index + 1}` })}
+                  aria-pressed={index === activeIndex}
+                >
+                  {item.type === "video" ? (
+                    <span className="product-media__thumb-video">▶</span>
+                  ) : (
+                    <img src={item.src} alt="" loading="lazy" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="product-info-panel">
+          <p className="product-detail__brand">{getProductLabel(product, t)}</p>
+          <h1 id="product-title">{product.title}</h1>
+          {product.sku && <p className="product-sku">מק"ט: {product.sku}</p>}
+
+          <div className="product-detail__price">
+            {!isPriced ? (
+              <span className="price-pending">{t(PRICE_COMING_SOON)}</span>
+            ) : hasDiscount ? (
+              <>
+                <span className="price-now">{formatCurrency(product.salePrice, "ILS")}</span>
+                <span className="price-was">{formatCurrency(product.price, "ILS")}</span>
+              </>
+            ) : (
+              <span className="price-now">{formatCurrency(product.price, "ILS")}</span>
+            )}
+          </div>
+
+          <button type="button" className="primary-button product-detail__add" onClick={() => handleAdd()} disabled={!isPriced}>
+            <ShoppingBag size={18} aria-hidden="true" />
+            {t({ en: "Add to cart", he: "הוסף לעגלה" })}
+          </button>
+
+          <ul className="product-trust">
+            <li><Truck size={18} aria-hidden="true" />{t({ en: "Free Israel shipping over ₪200", he: "משלוח חינם בישראל מעל ₪200" })}</li>
+            <li><Store size={18} aria-hidden="true" />{t({ en: "Same-day pickup available", he: "איסוף עצמי באותו היום" })}</li>
+          </ul>
+
+          {product.description && (
+            <div className="product-detail__description">
+              <h2>{t({ en: "Description", he: "תיאור המוצר" })}</h2>
+              <p className="product-description">{product.description}</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {similarProducts.length > 0 && (
+        <section className="product-similar" aria-labelledby="similar-title">
+          <div className="section-heading">
+            <h2 id="similar-title">{t({ en: "Similar products", he: "מוצרים דומים" })}</h2>
+          </div>
+          <div className="product-grid">
+            {similarProducts.map((item) => (
+              <ProductCard key={item.id} product={item} onAdd={handleAdd} />
             ))}
           </div>
-        )}
-      </div>
-      <div>
-        <p className="eyebrow">{product.platform}</p>
-        <h1 id="product-title">{product.title}</h1>
-        <p className="product-sku">מק"ט: {product.sku}</p>
-        <p className="product-description">{product.description}</p>
-        <p className="product-price">
-          {formatCurrency(product.salePrice ?? product.price, "ILS")}
-        </p>
-        <button type="button" className="primary-button" onClick={handleAdd}>
-          {t({ en: "Add to cart", he: "הוסף לעגלה" })}
-        </button>
-      </div>
-    </section>
+        </section>
+      )}
+    </>
   );
 }

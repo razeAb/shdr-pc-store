@@ -5,12 +5,13 @@ import CategoryNav from "./CategoryNav.jsx";
 import MobileNav from "./MobileNav.jsx";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
+import CartIcon from "./CartIcon.jsx";
 
-export default function Header() {
+export default function Header({ cartCount = 0, onCartOpen }) {
   const { products } = useProducts();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const navigate = useNavigate();
-  const { t } = useLang();
+  const { t, lang, setLang } = useLang();
 
   const handleAccountClick = () => {
     const token = localStorage.getItem("shdr-token");
@@ -43,9 +44,10 @@ export default function Header() {
           <span aria-hidden="true" className="logo-mark">
             <img className="logo-image" src="/logo.jpeg" alt="" />
           </span>
-          <span className="logo-text">SHDR</span>
+          <span className="logo-text">SHDR<span className="logo-caption">TECH & GAMING</span></span>
         </Link>
         <div className="header-actions">
+          <button className="language-toggle" type="button" onClick={() => setLang(lang === "he" ? "en" : "he")} aria-label={lang === "he" ? "Switch to English" : "מעבר לעברית"}>{lang === "he" ? "EN" : "עב"}</button>
           <button
             className="icon-button mobile-search-toggle"
             type="button"
@@ -88,6 +90,7 @@ export default function Header() {
               />
             </svg>
           </button>
+          <CartIcon onOpen={onCartOpen} count={cartCount} />
         </div>
       </div>
       <div className="header-nav-row">

@@ -30,15 +30,24 @@ export const productSchema = z.object({
     .optional()
     .default([]),
   price: z.number().nonnegative(),
-  sku: z.string().max(120).optional().default(""),
+  sku: z.string().trim().max(120).optional().default(""),
   category: z.string().max(200).optional().default(""),
   subCategory: z.string().max(200).optional().default(""),
-  productType: z.string().max(200).optional().default(""),
-  brand: z.string().max(200).optional().default(""),
-  connectivity: z.string().max(200).optional().default(""),
-  priceRange: z.string().max(200).optional().default(""),
+  productType: z.string().max(200).optional(),
+  brand: z.string().max(200).optional(),
+  connectivity: z.string().max(200).optional(),
+  priceRange: z.string().max(200).optional(),
   isActive: z.boolean().optional().default(true),
   tags: z.array(z.string().min(1).max(50)).optional().default([]),
+  specs: z
+    .object({
+      cpuBrand: z.string().trim().max(50).optional(),
+      cpu: z.string().trim().max(120).optional(),
+      gpu: z.string().trim().max(120).optional(),
+      ram: z.string().trim().max(50).optional(),
+      storage: z.string().trim().max(50).optional(),
+    })
+    .optional(),
   ingredients: z.string().max(5000).optional().default(""),
   servingSize: z.string().max(200).optional().default(""),
 });

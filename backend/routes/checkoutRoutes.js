@@ -41,6 +41,11 @@ checkoutRouter.post("/", optionalAuth, async (req, res, next) => {
     if (stillMissing.length) {
       return res.status(400).json({ message: "One or more products not found" });
     }
+    // Products listed before their price is set ("price coming soon") can't be bought.
+    const unpriced = products.filter((p) => !(p.price > 0));
+    if (unpriced.length) {
+      return res.status(400).json({ message: `אין עדיין מחיר למוצר: ${unpriced[0].title}` });
+    }
 
     const orderItems = items.map((item) => {
       const product = productMap.get(item.productId);

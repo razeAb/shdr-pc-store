@@ -16,8 +16,19 @@ const productSchema = new mongoose.Schema(
         priceRange: { type: String, default: "" },
         isActive: { type: Boolean, default: true },
         tags: [{ type: String }],
+        // Filterable specs for computers (empty for other products).
+        specs: {
+            cpuBrand: { type: String, default: "" },
+            cpu: { type: String, default: "" },
+            gpu: { type: String, default: "" },
+            ram: { type: String, default: "" },
+            storage: { type: String, default: "" },
+        },
     },
     { timestamps: true }
 );
+
+// sku holds the product barcode; it must be unique when set.
+productSchema.index({ sku: 1 }, { unique: true, partialFilterExpression: { sku: { $gt: "" } } });
 
 export const Product = mongoose.model("Product", productSchema);

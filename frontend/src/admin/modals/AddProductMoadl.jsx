@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import api from "../../api";
 import { MediaCarousel } from "../../components/MediaCarousel.jsx";
 import { useLang } from "../../context/LangContext";
+import { getDescriptionWarning } from "../../utils/products";
+import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORY } from "./SpecsFields.jsx";
 
 const AddProductModal = ({ onClose, onAdd }) => {
   const { t } = useLang();
@@ -16,6 +18,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
     isActive: true,
     images: [],
     videos: [],
+    specs: EMPTY_SPECS,
   });
 
   const [imageFiles, setImageFiles] = useState([]);
@@ -55,6 +58,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
         sku: form.sku,
         category: form.category,
         subCategory: form.subCategory,
+        specs: form.category === SPECS_CATEGORY ? form.specs : undefined,
         isActive: form.isActive,
         images: form.images,
         videos: form.videos,
@@ -76,7 +80,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
       onAdd(response.data);
       onClose();
     } catch (err) {
-      setError(err?.message || t({ ar: "فشل إضافة المنتج.", he: "הוספת מוצר נכשלה." }));
+      setError(err?.response?.data?.message || err?.message || t({ ar: "فشل إضافة المنتج.", he: "הוספת מוצר נכשלה." }));
       console.error(err);
     } finally {
       setLoading(false);
@@ -311,6 +315,12 @@ const AddProductModal = ({ onClose, onAdd }) => {
           ))}
         </select>
 
+        {form.category === SPECS_CATEGORY && (
+          <div className="mb-3">
+            <SpecsFields specs={form.specs} onChange={(specs) => setForm((prev) => ({ ...prev, specs }))} />
+          </div>
+        )}
+
         <input
           name="subCategory"
           placeholder={t({ ar: "الفئة الفرعية", he: "תת קטגוריה" })}
@@ -336,6 +346,9 @@ const AddProductModal = ({ onClose, onAdd }) => {
           value={form.description}
           className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20 mb-3 min-h-[100px]"
         />
+        {getDescriptionWarning(form.title, form.description) && (
+          <p className="text-yellow-400 text-xs -mt-2 mb-3">⚠️ {t(getDescriptionWarning(form.title, form.description))}</p>
+        )}
 
         <input
           name="tags"

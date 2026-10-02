@@ -13,7 +13,6 @@ import Signup from "./routes/Signup.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
 import { ProductsProvider } from "./context/ProductsContext.jsx";
 import { useLang } from "./context/LangContext.jsx";
-import CartIcon from "./components/CartIcon.jsx";
 import CartDrawer from "./components/CartDrawer.jsx";
 import { useCart } from "./context/CartContext.jsx";
 
@@ -37,11 +36,10 @@ function AppLayout({ onToast }) {
       <a className="skip-link" href="#main">
         {t({ en: "Skip to content", he: "דלג לתוכן" })}
       </a>
-      <Header />
+      <Header cartCount={itemCount} onCartOpen={() => setIsCartDrawerOpen(true)} />
       <main id="main" className="main-content" tabIndex={-1}>
         <Outlet context={{ onToast }} />
       </main>
-      <CartIcon onOpen={() => setIsCartDrawerOpen(true)} count={itemCount} />
       <CartDrawer
         isOpen={isCartDrawerOpen}
         onClose={() => setIsCartDrawerOpen(false)}

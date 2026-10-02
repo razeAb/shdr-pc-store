@@ -13,7 +13,7 @@ const pickImage = (images = []) => {
 
 // Primary categories get their own tab in the top nav; the rest live under
 // the "Other Electronics" menu. Order here drives display order everywhere.
-export const PRIMARY_CATEGORIES = ["PC Gaming", "PlayStation", "Xbox", "Nintendo"];
+export const PRIMARY_CATEGORIES = ["Gaming PCs", "PC Gaming", "PlayStation", "Xbox", "Nintendo"];
 
 export const OTHER_CATEGORIES = [
   "Networking Equipment",
@@ -28,6 +28,7 @@ export const OTHER_CATEGORIES = [
 export const HOMEPAGE_CATEGORIES = [...PRIMARY_CATEGORIES, ...OTHER_CATEGORIES];
 
 export const CATEGORY_LABELS = {
+  "Gaming PCs": { en: "Gaming PCs", he: "מחשבי גיימינג" },
   "PC Gaming": { en: "PC Gaming", he: "גיימינג למחשב" },
   PlayStation: { en: "PlayStation", he: "פלייסטיישן" },
   Xbox: { en: "Xbox", he: "אקסבוקס" },
@@ -49,6 +50,7 @@ export const PRODUCT_TYPE_LABELS = {
   Console: { en: "Console", he: "קונסולה" },
   Controller: { en: "Controller", he: "שלט" },
   Earbuds: { en: "Earbuds", he: "אוזניות אלחוטיות" },
+  "Gaming PC": { en: "Gaming PC", he: "מחשב גיימינג" },
   "Gift Card": { en: "Gift Card", he: "כרטיס מתנה" },
   Headset: { en: "Headset", he: "אוזניות" },
   Keyboard: { en: "Keyboard", he: "מקלדת" },
@@ -95,6 +97,7 @@ export const PRICE_RANGE_LABELS = {
 };
 
 export const SORT_OPTIONS = [
+  { value: "recommended", label: { en: "Recommended", he: "מומלצים" } },
   { value: "newest", label: { en: "Newest", he: "החדשים ביותר" } },
   { value: "price_asc", label: { en: "Price: low to high", he: "מחיר: מהנמוך לגבוה" } },
   { value: "price_desc", label: { en: "Price: high to low", he: "מחיר: מהגבוה לנמוך" } }
@@ -116,10 +119,17 @@ export const getProductTypesByCategory = (products) => {
   );
 };
 
-// Distinct brands with active products, excluding the "Other" placeholder
-// brand used for generic/unbranded accessories.
-export const getDistinctBrands = (products) =>
-  Array.from(new Set(products.map((product) => product.brand).filter((brand) => brand && brand !== "Other"))).sort();
+// Brands with active products and their product counts, biggest first,
+// excluding the "Other" placeholder used for generic/unbranded accessories.
+export const getBrandCounts = (products) => {
+  const counts = new Map();
+  products.forEach(({ brand }) => {
+    if (brand && brand !== "Other") counts.set(brand, (counts.get(brand) || 0) + 1);
+  });
+  return Array.from(counts, ([brand, count]) => ({ brand, count })).sort(
+    (a, b) => b.count - a.count || a.brand.localeCompare(b.brand)
+  );
+};
 
 export const getNewArrivals = (products, limit = RAIL_LIMIT) =>
   [...products].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, limit);
@@ -207,6 +217,40 @@ export const getDefaultBadge = (product, t) => {
   return null;
 };
 
+// Titles start with "<Hebrew brand> - <Latin brand>" (e.g. "לוג'יטק - Logitech
+// מקלדת …") so search matches both spellings. Cards show the brand on its own
+// line, so they drop that prefix to keep titles short.
+const TITLE_BRAND_PREFIX = /^[֐-׿][֐-׿0-9'"\s-]*? - [^֐-׿]+(?=[֐-׿])/;
+
+export const getShortTitle = (title = "") => {
+  const short = title.replace(TITLE_BRAND_PREFIX, "").trim();
+  return short || title;
+};
+
+// Products can be listed before their price is set; they show "price coming
+// soon" and can't be added to the cart until then.
+export const hasPrice = (product) => Number(product?.salePrice ?? product?.price) > 0;
+
+export const PRICE_COMING_SOON = { en: "Price coming soon", he: "מחיר בקרוב" };
+
+export const getCategoryLabel = (category, t) =>
+  category ? t(CATEGORY_LABELS[category] || { en: category, he: category }) : "";
+
+// Small label above a product title: the brand, or the category for
+// unbranded items.
+export const getProductLabel = (product, t) =>
+  product.brand && product.brand !== "Other" ? product.brand : getCategoryLabel(product.category, t);
+
+// Same productType first, then same category; never the product itself.
+export const getSimilarProducts = (products, product, limit = 4) => {
+  const others = products.filter((item) => item.id !== product.id);
+  const sameType = product.productType ? others.filter((item) => item.productType === product.productType) : [];
+  const sameCategory = others.filter(
+    (item) => item.category === product.category && !sameType.includes(item)
+  );
+  return [...sameType, ...sameCategory].slice(0, limit);
+};
+
 export const normalizeProduct = (product) => {
   const id = product?._id?.toString?.() || product?.id?.toString?.() || "";
   const title = product?.title || "Untitled product";
@@ -235,4 +279,17 @@ export const normalizeProduct = (product) => {
     images: Array.isArray(product?.images) ? product.images : [],
     videos: Array.isArray(product?.videos) ? product.videos : []
   };
+};
+
+// Non-blocking hint for the admin forms: flags descriptions that are empty,
+// too short to be useful, or just repeat the product title.
+const MIN_DESCRIPTION_LENGTH = 40;
+const normalizeText = (value) => (value || "").replace(/\s+/g, " ").trim().toLowerCase();
+
+export const getDescriptionWarning = (title, description) => {
+  const desc = normalizeText(description);
+  if (!desc) return { ar: "لا يوجد وصف للمنتج.", he: "אין תיאור למוצר." };
+  if (desc === normalizeText(title)) return { ar: "الوصف مطابق لاسم المنتج.", he: "התיאור זהה לשם המוצר." };
+  if (desc.length < MIN_DESCRIPTION_LENGTH) return { ar: "الوصف قصير جدًا.", he: "התיאור קצר מדי – כדאי להוסיף מפרט." };
+  return null;
 };

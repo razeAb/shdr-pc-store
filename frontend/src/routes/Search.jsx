@@ -16,12 +16,31 @@ import {
   normalizeProduct
 } from "../utils/products.js";
 
+// Spec filters (computers). Keys match the API query params and facet keys.
+const SPEC_GROUPS = [
+  { key: "cpuBrand", title: { en: "Processor brand", he: "יצרן מעבד" } },
+  { key: "cpu", title: { en: "Processor model", he: "דגם מעבד" } },
+  { key: "gpu", title: { en: "Graphics card", he: "כרטיס מסך" } },
+  { key: "ram", title: { en: "Memory", he: "זיכרון" } },
+  { key: "storage", title: { en: "Storage", he: "אחסון" } }
+];
+
 const FILTER_PARAM_BY_GROUP = {
   type: "type",
   brand: "brand",
   connectivity: "connectivity",
-  price: "price"
+  price: "price",
+  ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, key]))
 };
+
+// "500GB" < "1TB", "8GB" < "16GB": compare sizes, not strings.
+const toGigabytes = (value) => {
+  const match = /^(\d+(?:\.\d+)?)\s*(GB|TB)$/i.exec(value);
+  if (!match) return Number.POSITIVE_INFINITY;
+  return Number(match[1]) * (match[2].toUpperCase() === "TB" ? 1024 : 1);
+};
+const bySize = (a, b) => toGigabytes(a.value) - toGigabytes(b.value);
+const byNatural = (a, b) => a.value.localeCompare(b.value, undefined, { numeric: true });
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -33,6 +52,7 @@ const parseListParam = (value) =>
 
 // Combines the live facet counts with any currently-selected values so a
 // checked box never disappears just because it would now yield 0 results.
+// `order` is either an explicit value list or a sort comparator.
 const mergeOptions = (facetList, selected, labelMap, order, t) => {
   const counts = new Map((facetList || []).map((item) => [item.value, item.count]));
   selected.forEach((value) => {
@@ -43,7 +63,9 @@ const mergeOptions = (facetList, selected, labelMap, order, t) => {
     count,
     label: labelMap ? t(labelMap[value] || { en: value, he: value }) : value
   }));
-  if (order) {
+  if (typeof order === "function") {
+    options.sort(order);
+  } else if (order) {
     options.sort((a, b) => order.indexOf(a.value) - order.indexOf(b.value));
   }
   return options;
@@ -64,14 +86,15 @@ export default function Search() {
       type: parseListParam(query.get("type")),
       brand: parseListParam(query.get("brand")),
       connectivity: parseListParam(query.get("connectivity")),
-      price: parseListParam(query.get("price"))
+      price: parseListParam(query.get("price")),
+      ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, parseListParam(query.get(key))]))
     }),
     [location.search]
   );
-  const sort = query.get("sort") || "newest";
+  const sort = query.get("sort") || "recommended";
 
   const [products, setProducts] = useState([]);
-  const [facets, setFacets] = useState({ productType: [], brand: [], connectivity: [], priceRange: [] });
+  const [facets, setFacets] = useState({ productType: [], brand: [], connectivity: [], priceRange: [], specs: {} });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -92,7 +115,7 @@ export default function Search() {
         const list = Array.isArray(productsRes.data) ? productsRes.data : [];
         setProducts(list.map((item) => normalizeProduct(item)));
         setFacets(
-          facetsRes.data || { productType: [], brand: [], connectivity: [], priceRange: [] }
+          facetsRes.data || { productType: [], brand: [], connectivity: [], priceRange: [], specs: {} }
         );
       })
       .catch((err) => {
@@ -127,22 +150,19 @@ export default function Search() {
       params.delete("brand");
       params.delete("connectivity");
       params.delete("price");
+      SPEC_GROUPS.forEach(({ key }) => params.delete(key));
     });
   };
 
   const handleSortChange = (event) => {
     const value = event.target.value;
     updateParams((params) => {
-      if (value === "newest") params.delete("sort");
+      if (value === "recommended") params.delete("sort");
       else params.set("sort", value);
     });
   };
 
-  const hasActiveFilters =
-    selected.type.length > 0 ||
-    selected.brand.length > 0 ||
-    selected.connectivity.length > 0 ||
-    selected.price.length > 0;
+  const hasActiveFilters = Object.values(selected).some((values) => values.length > 0);
 
   const filterGroups = [
     {
@@ -168,7 +188,19 @@ export default function Search() {
       title: t({ en: "Price", he: "מחיר" }),
       selected: selected.price,
       options: mergeOptions(facets.priceRange, selected.price, PRICE_RANGE_LABELS, PRICE_RANGE_ORDER, t)
-    }
+    },
+    ...SPEC_GROUPS.map(({ key, title }) => ({
+      key,
+      title: t(title),
+      selected: selected[key],
+      options: mergeOptions(
+        facets.specs?.[key],
+        selected[key],
+        null,
+        key === "ram" || key === "storage" ? bySize : byNatural,
+        t
+      )
+    }))
   ];
 
   const categoryLabel = category ? t(CATEGORY_LABELS[category] || category) : "";
