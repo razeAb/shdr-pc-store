@@ -7,12 +7,15 @@ import FilterDrawer from "../components/FilterDrawer.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
 import {
+  ATTRIBUTE_GROUPS,
+  ATTRIBUTE_VALUE_LABELS,
   CATEGORY_LABELS,
   CONNECTIVITY_LABELS,
   PRICE_RANGE_LABELS,
   PRICE_RANGE_ORDER,
   PRODUCT_TYPE_LABELS,
   SORT_OPTIONS,
+  compareAttributeValues,
   normalizeProduct
 } from "../utils/products.js";
 
@@ -30,8 +33,11 @@ const FILTER_PARAM_BY_GROUP = {
   brand: "brand",
   connectivity: "connectivity",
   price: "price",
-  ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, key]))
+  ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, key])),
+  ...Object.fromEntries(ATTRIBUTE_GROUPS.map(({ key }) => [key, key]))
 };
+
+const EMPTY_FACETS = { productType: [], brand: [], connectivity: [], priceRange: [], specs: {}, attributes: {} };
 
 // "500GB" < "1TB", "8GB" < "16GB": compare sizes, not strings.
 const toGigabytes = (value) => {
@@ -87,14 +93,15 @@ export default function Search() {
       brand: parseListParam(query.get("brand")),
       connectivity: parseListParam(query.get("connectivity")),
       price: parseListParam(query.get("price")),
-      ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, parseListParam(query.get(key))]))
+      ...Object.fromEntries(SPEC_GROUPS.map(({ key }) => [key, parseListParam(query.get(key))])),
+      ...Object.fromEntries(ATTRIBUTE_GROUPS.map(({ key }) => [key, parseListParam(query.get(key))]))
     }),
     [location.search]
   );
   const sort = query.get("sort") || "recommended";
 
   const [products, setProducts] = useState([]);
-  const [facets, setFacets] = useState({ productType: [], brand: [], connectivity: [], priceRange: [], specs: {} });
+  const [facets, setFacets] = useState(EMPTY_FACETS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -114,9 +121,7 @@ export default function Search() {
       .then(([productsRes, facetsRes]) => {
         const list = Array.isArray(productsRes.data) ? productsRes.data : [];
         setProducts(list.map((item) => normalizeProduct(item)));
-        setFacets(
-          facetsRes.data || { productType: [], brand: [], connectivity: [], priceRange: [], specs: {} }
-        );
+        setFacets({ ...EMPTY_FACETS, ...facetsRes.data });
       })
       .catch((err) => {
         if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") return;
@@ -151,6 +156,7 @@ export default function Search() {
       params.delete("connectivity");
       params.delete("price");
       SPEC_GROUPS.forEach(({ key }) => params.delete(key));
+      ATTRIBUTE_GROUPS.forEach(({ key }) => params.delete(key));
     });
   };
 
@@ -163,6 +169,19 @@ export default function Search() {
   };
 
   const hasActiveFilters = Object.values(selected).some((values) => values.length > 0);
+
+  // Spec filters (socket, VRAM, wattage…) only make sense within one kind of
+  // product — RAM and SSD "capacity" shouldn't share a list — so they appear
+  // once the results narrow to a single product type.
+  const isSingleType = selected.type.length === 1 || facets.productType.length === 1;
+  const attributeGroups = ATTRIBUTE_GROUPS.filter(
+    ({ key }) => isSingleType || selected[key].length > 0
+  ).map(({ key, title, sort: order }) => ({
+    key,
+    title: t(title),
+    selected: selected[key],
+    options: mergeOptions(facets.attributes?.[key], selected[key], ATTRIBUTE_VALUE_LABELS, compareAttributeValues(order), t)
+  }));
 
   const filterGroups = [
     {
@@ -177,6 +196,7 @@ export default function Search() {
       selected: selected.brand,
       options: mergeOptions(facets.brand, selected.brand, null, null, t)
     },
+    ...attributeGroups,
     {
       key: "connectivity",
       title: t({ en: "Connectivity", he: "קישוריות" }),
@@ -196,7 +216,7 @@ export default function Search() {
       options: mergeOptions(
         facets.specs?.[key],
         selected[key],
-        null,
+        ATTRIBUTE_VALUE_LABELS,
         key === "ram" || key === "storage" ? bySize : byNatural,
         t
       )
@@ -204,7 +224,13 @@ export default function Search() {
   ];
 
   const categoryLabel = category ? t(CATEGORY_LABELS[category] || category) : "";
-  const heading = category
+  // One product type picked (e.g. from the nav's "Processors" link): name the
+  // page after it rather than the broader category.
+  const typeLabel =
+    selected.type.length === 1 ? t(PRODUCT_TYPE_LABELS[selected.type[0]] || selected.type[0]) : "";
+  const heading = typeLabel
+    ? typeLabel
+    : category
     ? categoryLabel
     : term
       ? t({ en: "Search results", he: "תוצאות חיפוש" })

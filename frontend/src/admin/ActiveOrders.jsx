@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Menu, ClipboardList } from "lucide-react";
+import { ChevronDown, ClipboardList } from "lucide-react";
 import api from "../api";
-import SideMenu from "../layouts/SideMenu";
+import AdminLayout from "../layouts/AdminLayout";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
 
@@ -26,7 +26,6 @@ const statusLabel = (status) => {
 export default function ActiveOrders() {
   const [orders, setOrders] = useState([]);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
@@ -79,48 +78,60 @@ export default function ActiveOrders() {
   if (error) return <div className="min-h-screen bg-[#0f1415] text-red-300 grid place-items-center">{t({ ar: "خطأ:", he: "שגיאה:" })} {error}</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f1415] text-white flex" dir="rtl">
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
-          />
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col">
-        <header className="h-16 bg-[#11131a] border-b border-white/10 sticky top-0 z-20">
-          <div className="h-full px-4 md:px-6 flex items-center gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label={t({ ar: "فتح القائمة", he: "פתח תפריט" })}
-            >
-              <Menu size={20} />
-            </button>
-            <div className="flex-1">
-              <h1 className="text-base md:text-lg font-semibold">{t({ ar: "الطلبات النشطة", he: "הזמנות פעילות" })}</h1>
-              <p className="text-white/50 text-xs">{t({ ar: "إدارة الطلبات الجارية", he: "ניהול הזמנות בתהליך" })}</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs text-white/60">
-              <ClipboardList size={16} />
-              <span>{activeOrders.length} {t({ ar: "طلب", he: "הזמנות" })}</span>
-            </div>
-          </div>
-        </header>
-
+    <AdminLayout
+      title={t({ ar: "الطلبات النشطة", he: "הזמנות פעילות" })}
+      subtitle={t({ ar: "إدارة الطلبات الجارية", he: `ניהול הזמנות בתהליך · ${activeOrders.length} הזמנות` })}
+    >
         <div className="px-4 md:px-6 mt-4 space-y-4">
-          <section className="rounded-2xl overflow-hidden shadow-lg border border-white/10">
+          {/* Phones: one card per order */}
+          <div className="md:hidden space-y-3">
+            {activeOrders.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-[#17181d] px-4 py-8 text-center text-white/60">
+                {t({ ar: "لا توجد طلبات نشطة حاليًا.", he: "אין הזמנות פעילות כרגע." })}
+              </p>
+            ) : (
+              activeOrders.map((order) => {
+                const { date, time } = formatDateParts(order.createdAt);
+                const isOpen = expandedOrderId === order._id;
+                return (
+                  <article key={order._id} className="rounded-2xl border border-white/10 bg-[#17181d] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-xs text-white/50">#{order._id.slice(-6)} · {date} · {time}</div>
+                        <div className="mt-1 font-semibold truncate">{order.customer?.fullName || t({ ar: "ضيف", he: "אורח" })}</div>
+                      </div>
+                      <div className="text-end shrink-0">
+                        <div className="font-bold">{formatCurrency(order.total || 0)}</div>
+                        <span className="mt-1 inline-block rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs text-emerald-300">
+                          {t(statusLabel(order.status))}
+                        </span>
+                      </div>
+                    </div>
+                    {isOpen && <OrderDetails order={order} t={t} />}
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        className="flex items-center justify-center gap-1 rounded-xl bg-white/5 py-2.5 text-sm"
+                        onClick={() => setExpandedOrderId(isOpen ? null : order._id)}
+                        aria-expanded={isOpen}
+                      >
+                        {isOpen ? t({ ar: "إخفاء التفاصيل", he: "הסתר פרטים" }) : t({ ar: "المزيد من التفاصيل", he: "עוד פרטים" })}
+                        <ChevronDown size={15} className={isOpen ? "rotate-180" : ""} />
+                      </button>
+                      <button
+                        className="rounded-xl bg-emerald-500/90 py-2.5 text-sm font-semibold text-emerald-50 disabled:opacity-60"
+                        onClick={() => markDone(order._id)}
+                        disabled={updatingId === order._id}
+                      >
+                        {updatingId === order._id ? t({ ar: "جارٍ التحديث...", he: "מעדכן…" }) : t({ ar: "تم", he: "סיום" })}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          <section className="hidden md:block rounded-2xl overflow-hidden shadow-lg border border-white/10">
             <div className="overflow-x-auto">
               <table className="min-w-[720px] w-full text-base">
                 <thead className="bg-emerald-500 text-emerald-50 text-base">
@@ -179,35 +190,7 @@ export default function ActiveOrders() {
                           {expandedOrderId === order._id && (
                             <tr className="bg-white/5">
                               <td colSpan={6} className="p-4">
-                                <div className="grid md:grid-cols-3 gap-4 text-base">
-                                  <div>
-                                    <div>
-                                      <strong>{t({ ar: "هاتف:", he: "טלפון:" })}</strong> {order.customer?.phone || "—"}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "بريد:", he: "אימייל:" })}</strong> {order.customer?.email || "—"}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "عنوان:", he: "כתובת:" })}</strong> {order.customer?.address || "—"}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "مدينة:", he: "עיר:" })}</strong> {order.customer?.city || "—"}
-                                    </div>
-                                  </div>
-                                  <div className="md:col-span-2">
-                                    <h4 className="font-semibold mb-2">{t({ ar: "تفاصيل الطلب", he: "פרטי ההזמנה" })}</h4>
-                                    <ul className="space-y-2">
-                                      {(order.items || []).map((item) => (
-                                        <li key={`${order._id}-${item.productId}`} className="flex justify-between gap-3">
-                                          <span className="text-white/80">{item.title}</span>
-                                          <span className="text-white/60">
-                                            {item.qty} × {formatCurrency(item.price)}
-                                          </span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                </div>
+                                <OrderDetails order={order} t={t} />
                               </td>
                             </tr>
                           )}
@@ -220,6 +203,40 @@ export default function ActiveOrders() {
             </div>
           </section>
         </div>
+    </AdminLayout>
+  );
+}
+
+function OrderDetails({ order, t }) {
+  return (
+    <div className="mt-3 md:mt-0 grid md:grid-cols-3 gap-4 text-sm md:text-base">
+      <div className="space-y-1 break-words">
+        <div>
+          <strong>{t({ ar: "هاتف:", he: "טלפון:" })}</strong>{" "}
+          {order.customer?.phone ? <a className="text-emerald-300" href={`tel:${order.customer.phone}`}>{order.customer.phone}</a> : "—"}
+        </div>
+        <div>
+          <strong>{t({ ar: "بريد:", he: "אימייל:" })}</strong> {order.customer?.email || "—"}
+        </div>
+        <div>
+          <strong>{t({ ar: "عنوان:", he: "כתובת:" })}</strong> {order.customer?.address || "—"}
+        </div>
+        <div>
+          <strong>{t({ ar: "مدينة:", he: "עיר:" })}</strong> {order.customer?.city || "—"}
+        </div>
+      </div>
+      <div className="md:col-span-2">
+        <h4 className="font-semibold mb-2">{t({ ar: "تفاصيل الطلب", he: "פרטי ההזמנה" })}</h4>
+        <ul className="space-y-2">
+          {(order.items || []).map((item) => (
+            <li key={`${order._id}-${item.productId}`} className="flex justify-between gap-3">
+              <span className="text-white/80 min-w-0">{item.title}</span>
+              <span className="text-white/60 shrink-0">
+                {item.qty} × {formatCurrency(item.price)}
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -24,6 +24,16 @@ const productSchema = new mongoose.Schema(
             ram: { type: String, default: "" },
             storage: { type: String, default: "" },
         },
+        // Filterable specs for other product types (socket, VRAM, wattage…),
+        // as key/value pairs so new keys need no schema change. Keys must be
+        // listed in ATTRIBUTE_KEYS (productRoutes.js) to be filterable.
+        attributes: [
+            {
+                _id: false,
+                key: { type: String, required: true },
+                value: { type: String, required: true },
+            },
+        ],
     },
     { timestamps: true }
 );

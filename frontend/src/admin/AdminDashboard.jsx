@@ -5,8 +5,8 @@ import { ORDER_STATUS } from "../constants/orderStatus";
 import Button from "../components/common/Button";
 import { motion } from "framer-motion";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from "recharts";
-import { Menu, Calendar } from "lucide-react";
-import SideMenu from "../layouts/SideMenu";
+import { Calendar } from "lucide-react";
+import AdminLayout from "../layouts/AdminLayout";
 
 /** Utils **/
 const ILS = new Intl.NumberFormat("he-IL", { style: "currency", currency: "ILS", maximumFractionDigits: 2 });
@@ -31,7 +31,6 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   // sidebar (mobile)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // filters
   const todayYMD = toYMD(new Date());
@@ -252,83 +251,40 @@ export default function AdminDashboard() {
   const { hotProducts = [], coldProducts = [] } = dashboardData;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0f141c] text-white flex">
-      {/* Sidebar (desktop) */}
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {/* Mobile overlay + drawer (render only when open) */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
+    <AdminLayout
+      title={t({ ar: "لوحة التحكم", he: "לוח בקרה" })}
+      subtitle={t({ ar: "مرحبًا بك في لوحة الإدارة", he: "ברוך/ה הבא/ה למערכת הניהול" })}
+      actions={
+        <div className="relative w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={openCalendar}
+            className="flex w-full items-center gap-2 bg-[#111824] border border-[#1f2a36] rounded-xl px-3 py-2.5 h-11 sm:min-w-[220px] text-[13px] text-[#c7cfdd] hover:bg-white/5 transition"
+            aria-label="בחר תאריך"
+          >
+            <Calendar size={16} className="opacity-80" />
+            <span className="shrink-0">{t({ ar: "تاريخ اليوم:", he: "תאריך יומי:" })}</span>
+            <span className="truncate text-white/90">{selectedDateLabel}</span>
+          </button>
+          <input
+            ref={dateRef}
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="absolute inset-0 opacity-0 pointer-events-none -z-10"
+            aria-hidden="true"
+            tabIndex={-1}
           />
         </div>
-      )}
-
-      {/* Main area */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Bar */}
-        <div className="sticky top-0 z-20 bg-[#11131a] border-b border-white/10">
-          <div className="px-4 sm:px-6 pt-4 pb-3 flex items-center justify-between gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="פתח תפריט"
-            >
-              <Menu size={20} />
-            </button>
-
-            <div className="min-w-0">
-              <h2 className="text-[18px] font-bold tracking-tight truncate">{t({ ar: "لوحة التحكم", he: "לוח בקרה" })}</h2>
-              <p className="text-[11px] text-[#8b93a7] mt-1">{t({ ar: "مرحبًا بك في لوحة الإدارة", he: "ברוך/ה הבא/ה למערכת הניהול" })}</p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {/* Date picker button (opens native calendar) */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={openCalendar}
-                  className="flex items-center gap-2 bg-[#111824] border border-[#1f2a36] rounded-lg px-3 py-2.5 h-11 min-w-[220px] text-[13px] text-[#c7cfdd] hover:bg-white/5 transition"
-                  aria-label="בחר תאריך"
-                >
-                  <Calendar size={16} className="opacity-80" />
-                  <span className="shrink-0">{t({ ar: "تاريخ اليوم:", he: "תאריך יומי:" })}</span>
-                  <span className="truncate text-white/90">{selectedDateLabel}</span>
-                </button>
-
-                {/* Real input (hidden but functional) */}
-                <input
-                  ref={dateRef}
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="absolute inset-0 opacity-0 pointer-events-none -z-10"
-                  aria-hidden="true"
-                  tabIndex={-1}
-                />
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <main className="px-4 sm:px-6 pb-8">
+      }
+    >
+        <div className="px-4 sm:px-6">
           {/* KPI Cards */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
-            className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            className="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
           >
             <KPI
               icon="🧾"
@@ -391,7 +347,7 @@ export default function AdminDashboard() {
             <SectionCard
               title={t({ ar: "الإيرادات حسب الفترة", he: "הכנסה לפי טווח" })}
               rightBadge={
-                <div className="flex items-center gap-1 bg-[#0f141c] border border-[#1f2a36] rounded-lg p-1 text-[11px]">
+                <div className="inline-flex items-center gap-1 bg-[#0f141c] border border-[#1f2a36] rounded-lg p-1 text-[11px]">
                   <TabButton active={revenueView === "year"} onClick={() => setRevenueView("year")}>
                     {t({ ar: "مقارنة بالسنة الماضية", he: "השוואה לשנה קודמת" })}
                   </TabButton>
@@ -531,9 +487,8 @@ export default function AdminDashboard() {
               )}
             </SectionCard>
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+    </AdminLayout>
   );
 }
 
@@ -547,12 +502,12 @@ function SectionCard({ title, subtitle, rightBadge, className = "", children }) 
       transition={{ duration: 0.25 }}
       className={`bg-[#111824] border border-[#1f2a36] rounded-xl p-3 sm:p-4 ${className}`}
     >
-      <div className="flex items-start sm:items-center justify-between gap-2">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-[15px] sm:text-[16px] font-bold truncate">{title}</h3>
+          <h3 className="text-[15px] sm:text-[16px] font-bold">{title}</h3>
           {subtitle && <p className="text-[11px] text-[#8b93a7] mt-0.5">{subtitle}</p>}
         </div>
-        {rightBadge && <div className="shrink-0">{rightBadge}</div>}
+        {rightBadge && <div className="w-full sm:w-auto overflow-x-auto">{rightBadge}</div>}
       </div>
       {children}
     </motion.section>
@@ -563,7 +518,7 @@ function TabButton({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-2.5 py-1 rounded-md transition-colors ${active ? "bg-[#14b98a] text-white" : "text-[#c7cfdd] hover:bg-white/5"}`}
+      className={`whitespace-nowrap px-2.5 py-1.5 sm:py-1 rounded-md transition-colors ${active ? "bg-[#14b98a] text-white" : "text-[#c7cfdd] hover:bg-white/5"}`}
     >
       {children}
     </button>

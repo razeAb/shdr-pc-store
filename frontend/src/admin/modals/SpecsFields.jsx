@@ -1,8 +1,8 @@
 import React from "react";
 import { useLang } from "../../context/LangContext";
 
-// Category whose products get filterable specs (processor, GPU, RAM, storage).
-export const SPECS_CATEGORY = "Gaming PCs";
+// Categories whose products get filterable specs (processor, GPU, RAM, storage).
+export const SPECS_CATEGORIES = ["Gaming PCs", "Laptops"];
 
 export const EMPTY_SPECS = { cpuBrand: "", cpu: "", gpu: "", ram: "", storage: "" };
 

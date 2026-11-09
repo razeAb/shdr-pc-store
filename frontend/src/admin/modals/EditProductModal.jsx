@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "../../components/MediaCarousel.jsx";
 import { useLang } from "../../context/LangContext";
 import { getDescriptionWarning } from "../../utils/products";
-import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORY } from "./SpecsFields.jsx";
+import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORIES } from "./SpecsFields.jsx";
 
 const pick = (obj, keys) => keys.reduce((acc, k) => (obj[k] !== undefined ? { ...acc, [k]: obj[k] } : acc), {});
 
@@ -168,7 +168,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             .map((tag) => tag.trim())
             .filter(Boolean),
           isActive: !!form.isActive,
-          specs: form.category === SPECS_CATEGORY ? form.specs : undefined,
+          specs: SPECS_CATEGORIES.includes(form.category) ? form.specs : undefined,
         },
         ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive", "specs"]
       );
@@ -193,9 +193,9 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose} aria-modal="true" role="dialog">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose} aria-modal="true" role="dialog">
       <div
-        className="relative bg-[#2a2a2a] rounded-xl p-6 w-full max-w-md shadow-lg text-white max-h-[90vh] overflow-y-auto"
+        className="relative bg-[#2a2a2a] rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full sm:max-w-md shadow-lg text-white max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
         dir="rtl"
       >
@@ -392,7 +392,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             className="w-full px-4 py-2 rounded bg-[#1f1f1f] border border-white/20"
           />
 
-          {form.category === SPECS_CATEGORY && (
+          {SPECS_CATEGORIES.includes(form.category) && (
             <SpecsFields specs={form.specs} onChange={(specs) => setForm((prev) => ({ ...prev, specs }))} />
           )}
 

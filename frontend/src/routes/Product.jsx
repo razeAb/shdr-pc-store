@@ -6,7 +6,15 @@ import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
 import ProductCard from "../components/ProductCard.jsx";
-import { PRICE_COMING_SOON, getCategoryLabel, getProductLabel, getSimilarProducts, hasPrice } from "../utils/products.js";
+import {
+  PRICE_COMING_SOON,
+  PRODUCT_TYPE_LABELS,
+  getCategoryLabel,
+  getProductLabel,
+  getSimilarProducts,
+  hasPrice,
+  parseSpecSheet
+} from "../utils/products.js";
 
 const getMediaItems = (product) => {
   if (!product) return [];
@@ -77,6 +85,9 @@ export default function Product() {
   const categoryLabel = getCategoryLabel(product.category, t);
   const hasDiscount = Number.isFinite(product.salePrice);
   const isPriced = hasPrice(product);
+  const { intro: rawIntro, rows: specRows } = parseSpecSheet(product.description);
+  // Imported descriptions open by repeating the title; don't show it twice.
+  const intro = rawIntro.replace(/\s+/g, " ") === product.title.replace(/\s+/g, " ") ? "" : rawIntro;
 
   return (
     <>
@@ -86,6 +97,16 @@ export default function Product() {
           <>
             <ChevronLeft size={14} aria-hidden="true" />
             <Link to={`/search?category=${encodeURIComponent(product.category)}`}>{categoryLabel}</Link>
+          </>
+        )}
+        {categoryLabel && PRODUCT_TYPE_LABELS[product.productType] && (
+          <>
+            <ChevronLeft size={14} aria-hidden="true" />
+            <Link
+              to={`/search?category=${encodeURIComponent(product.category)}&type=${encodeURIComponent(product.productType)}`}
+            >
+              {t(PRODUCT_TYPE_LABELS[product.productType])}
+            </Link>
           </>
         )}
       </nav>
@@ -160,10 +181,26 @@ export default function Product() {
             <li><Store size={18} aria-hidden="true" />{t({ en: "Same-day pickup available", he: "איסוף עצמי באותו היום" })}</li>
           </ul>
 
-          {product.description && (
+          {intro && (
             <div className="product-detail__description">
               <h2>{t({ en: "Description", he: "תיאור המוצר" })}</h2>
-              <p className="product-description">{product.description}</p>
+              <p className="product-description">{intro}</p>
+            </div>
+          )}
+
+          {specRows.length > 0 && (
+            <div className="product-detail__description">
+              <h2>{t({ en: "Specifications", he: "מפרט טכני" })}</h2>
+              <table className="product-specs">
+                <tbody>
+                  {specRows.map((row) => (
+                    <tr key={row.label}>
+                      <th scope="row">{row.label}</th>
+                      <td>{row.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

@@ -48,6 +48,10 @@ export const productSchema = z.object({
       storage: z.string().trim().max(50).optional(),
     })
     .optional(),
+  attributes: z
+    .array(z.object({ key: z.string().trim().min(1).max(50), value: z.string().trim().min(1).max(120) }))
+    .max(30)
+    .optional(),
   ingredients: z.string().max(5000).optional().default(""),
   servingSize: z.string().max(200).optional().default(""),
 });

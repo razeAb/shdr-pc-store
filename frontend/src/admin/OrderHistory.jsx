@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLang } from "../context/LangContext";
 import api from "../api";
-import SideMenu from "../layouts/SideMenu";
-import { Menu } from "lucide-react";
+import AdminLayout from "../layouts/AdminLayout";
+import { ChevronDown } from "lucide-react";
 
 /* ---------- helpers ---------- */
 const formatDateParts = (timestamp) => {
@@ -47,7 +47,6 @@ export default function OrderHistory() {
   };
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -79,53 +78,15 @@ export default function OrderHistory() {
   if (error) return <div className="min-h-screen bg-[#0f1415] text-red-300 grid place-items-center">{t({ ar: "خطأ:", he: "שגיאה:" })} {error}</div>;
 
   return (
-    <div className="min-h-screen bg-[#0f1415] text-white flex" dir="rtl">
-      {/* Sidebar desktop */}
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {/* Mobile overlay + drawer */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
-          />
-        </div>
-      )}
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
-        {/* Top bar */}
-        <header className="h-16 bg-[#11131a] border-b border-white/10 sticky top-0 z-20">
-          <div className="h-full px-4 md:px-6 flex items-center gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label={t({ ar: "فتح القائمة", he: "פתח תפריט" })}
-            >
-              <Menu size={20} />
-            </button>
-
-            <div className="flex-1">
-              <h1 className="text-base md:text-lg font-semibold">{t({ ar: "سجل الطلبات", he: "היסטוריית הזמנות" })}</h1>
-              <p className="text-white/50 text-xs">{t({ ar: "عرض الطلبات حسب الفترة", he: "צפייה בהזמנות לפי טווח תאריכים" })}</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
+    <AdminLayout
+      title={t({ ar: "سجل الطلبات", he: "היסטוריית הזמנות" })}
+      subtitle={t({ ar: "عرض الطلبات حسب الفترة", he: "צפייה בהזמנות לפי טווח תאריכים" })}
+    >
         <div className="px-4 md:px-6 mt-4 space-y-4">
           {/* Filters card */}
           <section className="bg-[#17181d] border border-white/10 rounded-2xl p-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
                 <span className="text-white/80 shrink-0">{t({ ar: "من تاريخ:", he: "מתאריך:" })}</span>
                 <input
                   type="date"
@@ -135,7 +96,7 @@ export default function OrderHistory() {
                 />
               </label>
 
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
                 <span className="text-white/80 shrink-0">{t({ ar: "حتى تاريخ:", he: "עד תאריך:" })}</span>
                 <input
                   type="date"
@@ -151,8 +112,46 @@ export default function OrderHistory() {
             </div>
           </section>
 
+          {/* Phones: one card per order */}
+          <div className="md:hidden space-y-3">
+            {filteredOrders.length === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-[#17181d] px-4 py-8 text-center text-white/60">
+                {t({ ar: "لا توجد طلبات في الفترة المحددة.", he: "אין הזמנות בטווח התאריכים שנבחר." })}
+              </p>
+            ) : (
+              filteredOrders.map((order) => {
+                const { date, time } = formatDateParts(order.createdAt);
+                const isOpen = expandedOrderId === order._id;
+                return (
+                  <article key={order._id} className="rounded-2xl border border-white/10 bg-[#17181d] p-4">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 text-start"
+                      onClick={() => setExpandedOrderId(isOpen ? null : order._id)}
+                      aria-expanded={isOpen}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-semibold">#{order._id.slice(-6)}</div>
+                        <div className="text-xs text-white/50 mt-0.5">{date} · {time}</div>
+                      </div>
+                      <span className="flex items-center gap-1 text-sm text-white/70">
+                        {isOpen ? t({ ar: "إخفاء", he: "הסתר" }) : t({ ar: "تفاصيل", he: "פרטים" })}
+                        <ChevronDown size={15} className={isOpen ? "rotate-180" : ""} />
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <div className="mt-3 border-t border-white/10 pt-3">
+                        <HistoryDetails order={order} t={t} resolveOrderItemName={resolveOrderItemName} />
+                      </div>
+                    )}
+                  </article>
+                );
+              })
+            )}
+          </div>
+
           {/* Table card */}
-          <section className="rounded-2xl overflow-hidden shadow-lg border border-white/10">
+          <section className="hidden md:block rounded-2xl overflow-hidden shadow-lg border border-white/10">
             <div className="overflow-x-auto">
               <table className="min-w-[680px] w-full text-sm">
                 <thead className="bg-emerald-500 text-emerald-50">
@@ -195,52 +194,7 @@ export default function OrderHistory() {
                           {expandedOrderId === order._id && (
                             <tr className="bg-white/5">
                               <td colSpan={4} className="p-4">
-                                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                  <div>
-                                    <div>
-                                      <strong>{t({ ar: "المستخدم:", he: "משתמש:" })}</strong>{" "}
-                                      {order.user ? order.user.name : order.customerName || t({ ar: "ضيف", he: "אורח" })}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "هاتف:", he: "טלפון:" })}</strong> {order.user ? order.user.phone : order.phone || "—"}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "المبلغ:", he: "סכום לתשלום:" })}</strong>{" "}
-                                      {order.totalPrice ? `₪${order.totalPrice}` : t({ ar: "غير متاح", he: "לא זמין" })}
-                                    </div>
-                                    <div>
-                                      <strong>{t({ ar: "طريقة الدفع:", he: "אמצעי תשלום:" })}</strong>{" "}
-                                      {translatePaymentMethod(order.paymentDetails?.method || order.paymentMethod || order.payment?.method)}
-                                    </div>
-                                  </div>
-
-                                  <div className="md:col-span-2">
-                                    <h4 className="font-semibold mb-2">{t({ ar: "تفاصيل الطلب", he: "פרטי ההזמנה" })}</h4>
-                                    <ul className="space-y-2">
-                                      {Array.isArray(order.items) &&
-                                        order.items.map((item, idx) => {
-                                          const hasVegetables = Array.isArray(item.vegetables) && item.vegetables.length;
-                                          const hasAdditions = Array.isArray(item.additions) && item.additions.length;
-                                          const hasMeta = hasVegetables || hasAdditions || item.comment;
-
-                                          return (
-                                            <li key={idx} className="leading-6">
-                                              <strong>{resolveOrderItemName(item)}</strong> — כמות: {item.quantity}{" "}
-                                              {item.isWeighted ? "גרם" : ""}
-                                              {hasMeta ? (
-                                                <div className="text-white/70">
-                                                  {hasVegetables ? `ירקות: ${item.vegetables.join(", ")}` : ""}
-                                                  {hasVegetables && hasAdditions ? " · " : ""}
-                                                  {hasAdditions ? `תוספות: ${item.additions.map((a) => a.addition).join(", ")}` : ""}
-                                                  {item.comment ? ` · הערות: ${item.comment}` : ""}
-                                                </div>
-                                              ) : null}
-                                            </li>
-                                          );
-                                        })}
-                                    </ul>
-                                  </div>
-                                </div>
+                                <HistoryDetails order={order} t={t} resolveOrderItemName={resolveOrderItemName} />
                               </td>
                             </tr>
                           )}
@@ -261,6 +215,56 @@ export default function OrderHistory() {
             <div className="text-white/40">מועדון SHDR</div>
           </div>
         </div>
+    </AdminLayout>
+  );
+}
+
+function HistoryDetails({ order, t, resolveOrderItemName }) {
+  return (
+    <div className="grid md:grid-cols-3 gap-4 text-sm">
+      <div className="space-y-1">
+        <div>
+          <strong>{t({ ar: "المستخدم:", he: "משתמש:" })}</strong>{" "}
+          {order.user ? order.user.name : order.customerName || t({ ar: "ضيف", he: "אורח" })}
+        </div>
+        <div>
+          <strong>{t({ ar: "هاتف:", he: "טלפון:" })}</strong> {order.user ? order.user.phone : order.phone || "—"}
+        </div>
+        <div>
+          <strong>{t({ ar: "المبلغ:", he: "סכום לתשלום:" })}</strong>{" "}
+          {order.totalPrice ? `₪${order.totalPrice}` : t({ ar: "غير متاح", he: "לא זמין" })}
+        </div>
+        <div>
+          <strong>{t({ ar: "طريقة الدفع:", he: "אמצעי תשלום:" })}</strong>{" "}
+          {translatePaymentMethod(order.paymentDetails?.method || order.paymentMethod || order.payment?.method)}
+        </div>
+      </div>
+
+      <div className="md:col-span-2">
+        <h4 className="font-semibold mb-2">{t({ ar: "تفاصيل الطلب", he: "פרטי ההזמנה" })}</h4>
+        <ul className="space-y-2">
+          {Array.isArray(order.items) &&
+            order.items.map((item, idx) => {
+              const hasVegetables = Array.isArray(item.vegetables) && item.vegetables.length;
+              const hasAdditions = Array.isArray(item.additions) && item.additions.length;
+              const hasMeta = hasVegetables || hasAdditions || item.comment;
+
+              return (
+                <li key={idx} className="leading-6">
+                  <strong>{resolveOrderItemName(item)}</strong> — כמות: {item.quantity}{" "}
+                  {item.isWeighted ? "גרם" : ""}
+                  {hasMeta ? (
+                    <div className="text-white/70">
+                      {hasVegetables ? `ירקות: ${item.vegetables.join(", ")}` : ""}
+                      {hasVegetables && hasAdditions ? " · " : ""}
+                      {hasAdditions ? `תוספות: ${item.additions.map((a) => a.addition).join(", ")}` : ""}
+                      {item.comment ? ` · הערות: ${item.comment}` : ""}
+                    </div>
+                  ) : null}
+                </li>
+              );
+            })}
+        </ul>
       </div>
     </div>
   );

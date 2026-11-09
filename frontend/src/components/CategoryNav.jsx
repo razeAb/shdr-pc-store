@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Wrench } from "lucide-react";
 import {
   CATEGORY_LABELS,
   OTHER_CATEGORIES,
@@ -56,6 +56,13 @@ export default function CategoryNav() {
       aria-label={t({ en: "Shop by category", he: "קנייה לפי קטגוריה" })}
       ref={wrapperRef}
     >
+      <Link
+        className={`nav-link nav-link--builder ${location.pathname === "/build" ? "active" : ""}`}
+        to="/build"
+      >
+        <Wrench size={14} aria-hidden="true" />
+        {t({ en: "Build a PC", he: "בנה מחשב" })}
+      </Link>
       {PRIMARY_CATEGORIES.map((name) => {
         const subTypes = productTypesByCategory[name] || [];
         return (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Menu, Plus, Trash2, RefreshCcw } from "lucide-react";
+import { Plus, Trash2, RefreshCcw } from "lucide-react";
 import api from "../api";
-import SideMenu from "../layouts/SideMenu";
+import AdminLayout from "../layouts/AdminLayout";
 
 const emptyForm = {
   title: "",
@@ -20,7 +20,6 @@ export default function Deals() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [imageFile, setImageFile] = useState(null);
 
@@ -138,51 +137,21 @@ export default function Deals() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0f141c] text-white flex">
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
-          />
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col">
-        <header className="sticky top-0 z-20 bg-[#11131a] border-b border-white/10">
-          <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="פתח תפריט"
-            >
-              <Menu size={20} />
-            </button>
-
-            <div>
-              <h1 className="text-[18px] font-bold tracking-tight">מבצעים</h1>
-              <p className="text-[11px] text-[#8b93a7] mt-1">
-                ניהול הקרוסלה בראש דף הבית
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <main className="px-4 sm:px-6 pb-10 space-y-6">
+    <AdminLayout
+      title="מבצעים"
+      subtitle="ניהול הקרוסלה בראש דף הבית"
+      actions={
+        <button
+          type="button"
+          onClick={() => setIsAddOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold"
+        >
+          <Plus size={16} />
+          הוסף מבצע
+        </button>
+      }
+    >
+        <div className="px-4 sm:px-6 pt-4 space-y-6">
           {(status || error) && (
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
@@ -194,25 +163,6 @@ export default function Deals() {
               {status || error}
             </div>
           )}
-
-          <section className="bg-[#111824] border border-[#1f2a36] rounded-2xl p-4 sm:p-6">
-            <div className="flex flex-wrap gap-3 items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">מבצעים</h2>
-                <p className="text-xs text-white/60 mt-1">
-                  נהל את הקרוסלה בראש דף הבית
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsAddOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm"
-              >
-                <Plus size={16} />
-                הוסף מבצע
-              </button>
-            </div>
-          </section>
 
           <section className="bg-[#111824] border border-[#1f2a36] rounded-2xl p-4 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -241,7 +191,7 @@ export default function Deals() {
                     <img
                       src={deal.imageUrl}
                       alt={deal.title || "deal"}
-                      className="h-16 w-28 rounded-lg object-cover border border-white/10"
+                      className="h-32 w-full md:h-16 md:w-28 rounded-lg object-cover border border-white/10"
                     />
                     <div className="space-y-2">
                       <input
@@ -300,8 +250,8 @@ export default function Deals() {
                         </label>
                         <span className="text-xs text-white/50">התמונה תעודכן מיד</span>
                       </div>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-white/70">
-                        <label className="flex items-center gap-2">
+                      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-3 sm:gap-4 text-sm text-white/70">
+                        <label className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                           מחיר בסיס:
                           <input
                             type="number"
@@ -321,10 +271,10 @@ export default function Deals() {
                                 basePrice: e.target.value,
                               })
                             }
-                            className="w-24 px-2 py-1 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
+                            className="w-full sm:w-24 px-2 py-1.5 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
                           />
                         </label>
-                        <label className="flex items-center gap-2">
+                        <label className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                           מחיר מבצע:
                           <input
                             type="number"
@@ -344,7 +294,7 @@ export default function Deals() {
                                 discountedPrice: e.target.value,
                               })
                             }
-                            className="w-24 px-2 py-1 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
+                            className="w-full sm:w-24 px-2 py-1.5 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
                           />
                         </label>
                         <label className="flex items-center gap-2">
@@ -365,7 +315,7 @@ export default function Deals() {
                           />
                           פעיל
                         </label>
-                        <label className="flex items-center gap-2">
+                        <label className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
                           סדר:
                           <input
                             type="number"
@@ -385,7 +335,7 @@ export default function Deals() {
                                 sortOrder: e.target.value,
                               })
                             }
-                            className="w-24 px-2 py-1 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
+                            className="w-full sm:w-24 px-2 py-1.5 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none text-sm"
                           />
                         </label>
                       </div>
@@ -403,12 +353,14 @@ export default function Deals() {
               </div>
             )}
           </section>
-        </main>
-      </div>
+        </div>
 
       {isAddOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-              <div className="w-full max-w-2xl bg-[#111824] border border-[#1f2a36] rounded-2xl p-6 text-white">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4" onClick={() => setIsAddOpen(false)}>
+              <div
+                className="w-full max-w-2xl max-h-[92dvh] overflow-y-auto bg-[#111824] border border-[#1f2a36] rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 text-white"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-semibold">הוספת מבצע</h2>
@@ -514,7 +466,7 @@ export default function Deals() {
                   </label>
                 </div>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="sticky bottom-0 -mx-5 sm:mx-0 px-5 sm:px-0 py-3 bg-[#111824] flex justify-end gap-3 mt-6">
                   <button
                     type="button"
                     onClick={() => setIsAddOpen(false)}
@@ -534,6 +486,6 @@ export default function Deals() {
               </div>
             </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

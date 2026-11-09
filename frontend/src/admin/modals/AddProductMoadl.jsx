@@ -3,7 +3,7 @@ import api from "../../api";
 import { MediaCarousel } from "../../components/MediaCarousel.jsx";
 import { useLang } from "../../context/LangContext";
 import { getDescriptionWarning } from "../../utils/products";
-import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORY } from "./SpecsFields.jsx";
+import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORIES } from "./SpecsFields.jsx";
 
 const AddProductModal = ({ onClose, onAdd }) => {
   const { t } = useLang();
@@ -58,7 +58,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
         sku: form.sku,
         category: form.category,
         subCategory: form.subCategory,
-        specs: form.category === SPECS_CATEGORY ? form.specs : undefined,
+        specs: SPECS_CATEGORIES.includes(form.category) ? form.specs : undefined,
         isActive: form.isActive,
         images: form.images,
         videos: form.videos,
@@ -148,9 +148,9 @@ const AddProductModal = ({ onClose, onAdd }) => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black bg-opacity-60 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
       <div
-        className="bg-[#2a2a2a] rounded-xl p-6 w-full max-w-md shadow-lg text-white overflow-y-auto max-h-[90vh]"
+        className="bg-[#2a2a2a] rounded-t-2xl sm:rounded-xl p-5 sm:p-6 w-full sm:max-w-md shadow-lg text-white overflow-y-auto max-h-[92dvh]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-2xl font-bold mb-4 text-center">{t({ ar: "➕ إضافة منتج جديد", he: "➕ הוספת מוצר חדש" })}</h2>
@@ -315,7 +315,7 @@ const AddProductModal = ({ onClose, onAdd }) => {
           ))}
         </select>
 
-        {form.category === SPECS_CATEGORY && (
+        {SPECS_CATEGORIES.includes(form.category) && (
           <div className="mb-3">
             <SpecsFields specs={form.specs} onChange={(specs) => setForm((prev) => ({ ...prev, specs }))} />
           </div>

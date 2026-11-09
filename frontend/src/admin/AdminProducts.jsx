@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo } from "react";
 import api from "../api";
-import SideMenu from "../layouts/SideMenu";
+import AdminLayout from "../layouts/AdminLayout";
 import AddProductModal from "./modals/AddProductMoadl"; // keep your original filename
 import EditProductModal from "./modals/EditProductModal";
 import Button from "../components/common/Button";
-import { Menu, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Pencil, Trash2, Eye, EyeOff, Plus, Search } from "lucide-react";
 import { useLang } from "../context/LangContext";
 import { ResponsiveContainer, PieChart, Pie, Tooltip, Label } from "recharts";
 
@@ -51,11 +51,11 @@ export default function AdminProducts() {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [categoryList, setCategoryList] = useState([]);
   const [categoryName, setCategoryName] = useState("");
   const [categorySaving, setCategorySaving] = useState(false);
   const [categoryError, setCategoryError] = useState("");
+  const [isCategoryPanelOpen, setIsCategoryPanelOpen] = useState(false);
 
   // ---- סינון/חיפוש
   const [activeCategory, setActiveCategory] = useState("הכל");
@@ -64,7 +64,12 @@ export default function AdminProducts() {
   // ---- סטטיסטיקות
   const [categoryStats, setCategoryStats] = useState([]); // [{name, count}]
   const { lang, t } = useLang();
-  const resolveName = (p) => (lang === "en" ? p?.name_en ?? p?.name : p?.name_he ?? p?.name);
+  // Products store their name in `title`; older records may use name fields.
+  const resolveName = (p) =>
+    (lang === "en" ? p?.name_en ?? p?.name : p?.name_he ?? p?.name) ?? p?.title ?? "";
+  // Each category shows this many products until "show all" is pressed.
+  const CATEGORY_PREVIEW = 12;
+  const [expandedCategories, setExpandedCategories] = useState({});
   const resolveCategoryLabel = (value) => {
     if (value === "הכל") return t({ ar: "الكل", he: "הכל" });
     if (value === "לא מקוטלג") return t({ ar: "غير مصنف", he: "לא מקוטלג" });
@@ -207,7 +212,8 @@ export default function AdminProducts() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId) => {
+  const handleDeleteCategory = async (categoryId, name) => {
+    if (!window.confirm(t({ ar: `حذف الفئة "${name}"؟`, he: `למחוק את הקטגוריה "${name}"?` }))) return;
     setCategoryError("");
     try {
       const token = localStorage.getItem("token");
@@ -225,7 +231,7 @@ export default function AdminProducts() {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       if (!q) return true;
-      const nameText = `${p.name_en || ""} ${p.name_he || ""} ${p.name || ""}`.toLowerCase();
+      const nameText = `${p.title || ""} ${p.sku || ""} ${p.name_en || ""} ${p.name_he || ""} ${p.name || ""}`.toLowerCase();
       const descText = `${p.description_en || ""} ${p.description_he || ""} ${p.description || ""}`.toLowerCase();
       return nameText.includes(q) || descText.includes(q);
     });
@@ -319,73 +325,55 @@ export default function AdminProducts() {
   const REST = "rgba(255,255,255,0.08)";
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0f141c] text-white flex">
-      {/* תפריט צד לשולחן עבודה */}
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {/* חפיפה + מגירה בנייד */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
-          />
-        </div>
-      )}
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
-        {/* סרגל עליון */}
-        <header className="sticky top-0 z-20 bg-[#11131a] border-b border-white/10">
-          <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label={t({ ar: "فتح القائمة", he: "פתח תפריט" })}
-            >
-              <Menu size={20} />
-            </button>
-
-            <div className="min-w-0">
-              <h1 className="text-[18px] font-bold tracking-tight truncate">{t({ ar: "المنتجات", he: "מוצרים" })}</h1>
-              <p className="text-[11px] text-[#8b93a7] mt-1">{t({ ar: "إدارة منتجات المتجر", he: "ניהול המוצרים בחנות" })}</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button
-                title={t({ ar: "أضف منتجًا جديدًا", he: "הוסף מוצר חדש" })}
-                onClick={() => {
-                  setSelectedProduct(null);
-                  setShowModal(true);
-                }}
-              />
-            </div>
+    <AdminLayout
+      title={t({ ar: "المنتجات", he: "מוצרים" })}
+      subtitle={t({
+        ar: "إدارة منتجات المتجر",
+        he: `ניהול המוצרים בחנות · ${products.length} מוצרים`
+      })}
+      actions={
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedProduct(null);
+            setShowModal(true);
+          }}
+          className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-sm font-semibold"
+        >
+          <Plus size={16} />
+          {t({ ar: "أضف منتجًا جديدًا", he: "הוסף מוצר חדש" })}
+        </button>
+      }
+    >
+        <div className="px-4 sm:px-6">
+          {/* חיפוש */}
+          <div className="mt-4 relative">
+            <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-white/40 pointer-events-none" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t({ ar: "بحث بالاسم أو الرمز", he: "חיפוש לפי שם או מק\"ט" })}
+              className="w-full rounded-xl bg-[#111824] border border-[#1f2a36] pr-9 pl-3 py-2.5 text-sm outline-none focus:border-emerald-500/60"
+            />
           </div>
-        </header>
-
-        {/* תוכן */}
-        <main className="px-4 sm:px-6 pb-10">
-          {/* ניהול קטגוריות */}
+          {/* ניהול קטגוריות (סגור כברירת מחדל – לא צריך בכל כניסה) */}
           <div className="mt-6">
             <SectionCard
-              title={t({ ar: "إدارة الفئات", he: "ניהול קטגוריות" })}
+              title={t({ ar: "إدارة الفئات", he: `ניהול קטגוריות (${categoryList.length})` })}
               extra={
                 <button
                   type="button"
-                  onClick={fetchCategories}
-                  className="text-xs text-white/70 hover:text-white"
+                  onClick={() => setIsCategoryPanelOpen((open) => !open)}
+                  aria-expanded={isCategoryPanelOpen}
+                  className="flex items-center gap-1 text-xs text-white/70 hover:text-white py-1"
                 >
-                  {t({ ar: "تحديث", he: "רענן" })}
+                  {isCategoryPanelOpen ? t({ ar: "إخفاء", he: "הסתר" }) : t({ ar: "إدارة", he: "ניהול" })}
+                  <ChevronDown size={14} className={isCategoryPanelOpen ? "rotate-180" : ""} />
                 </button>
               }
             >
+              {isCategoryPanelOpen && (
               <div className="flex flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <input
@@ -418,7 +406,7 @@ export default function AdminProducts() {
                         <span>{cat.name}</span>
                         <button
                           type="button"
-                          onClick={() => handleDeleteCategory(cat._id)}
+                          onClick={() => handleDeleteCategory(cat._id, cat.name)}
                           className="text-rose-300 hover:text-rose-200"
                           aria-label={t({ ar: `حذف ${cat.name}`, he: `מחק ${cat.name}` })}
                         >
@@ -428,14 +416,18 @@ export default function AdminProducts() {
                     ))}
                   </div>
                 )}
+                <button type="button" onClick={fetchCategories} className="self-start text-xs text-white/60 hover:text-white">
+                  {t({ ar: "تحديث", he: "רענן רשימה" })}
+                </button>
               </div>
+              )}
             </SectionCard>
           </div>
 
           {/* מסננים */}
           <div className="mt-6">
             <SectionCard title={t({ ar: "تصفية المنتجات", he: "סינון מוצרים" })}>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:flex-wrap sm:overflow-visible">
                 {categories.map((cat) => {
                   const isActive = activeCategory === cat;
                   const count =
@@ -446,7 +438,7 @@ export default function AdminProducts() {
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`px-3 py-1.5 rounded-full text-sm border transition
+                      className={`shrink-0 whitespace-nowrap px-3 py-2 sm:py-1.5 rounded-full text-sm border transition
                         ${
                           isActive
                             ? "bg-emerald-600 text-white border-emerald-500"
@@ -470,18 +462,37 @@ export default function AdminProducts() {
               </div>
             </SectionCard>
           ) : (
-            Object.keys(groupedByCategory).map((category) => (
+            Object.keys(groupedByCategory).map((category) => {
+              const all = groupedByCategory[category];
+              const isSearching = Boolean(query.trim());
+              const shown = expandedCategories[category] || isSearching ? all : all.slice(0, CATEGORY_PREVIEW);
+              return (
               <div key={category} className="mt-6">
-                <SectionCard title={resolveCategoryLabel(category)}>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {groupedByCategory[category].map((product) => {
+                <SectionCard
+                  title={`${resolveCategoryLabel(category)} (${all.length})`}
+                  extra={
+                    all.length > CATEGORY_PREVIEW && !isSearching ? (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCategories((prev) => ({ ...prev, [category]: !prev[category] }))}
+                        className="text-xs text-emerald-300 hover:text-emerald-200 py-1"
+                      >
+                        {expandedCategories[category]
+                          ? t({ ar: "عرض أقل", he: "הצג פחות" })
+                          : t({ ar: `عرض الكل (${all.length})`, he: `הצג הכל (${all.length})` })}
+                      </button>
+                    ) : null
+                  }
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                    {shown.map((product) => {
                       const inactive = !product.isActive;
                       return (
-                        <div key={product._id} className={`bg-[#0f141c] border border-[#1f2a36] rounded-xl overflow-hidden hover:border-white/20 transition`}>
+                        <div key={product._id} className="admin-product bg-[#0f141c] border border-[#1f2a36] rounded-xl overflow-hidden hover:border-white/20 transition">
                           {/* תמונה */}
-                          <div className="relative h-40 bg-[#0d1219]">
+                          <div className="admin-product__image relative h-40 bg-white">
                             {product.images?.length ? (
-                              <img src={product.images[0]} alt={resolveName(product)} className="w-full h-full object-cover" loading="lazy" />
+                              <img src={product.images[0]} alt={resolveName(product)} className="w-full h-full object-contain" loading="lazy" />
                             ) : (
                               <div className="w-full h-full grid place-items-center text-white/30 text-sm">
                                 {t({ ar: "لا توجد صورة", he: "אין תמונה" })}
@@ -495,16 +506,15 @@ export default function AdminProducts() {
                           </div>
 
                           {/* גוף הכרטיס */}
-                          <div className="p-3 space-y-2">
+                          <div className="admin-product__body p-3 space-y-2 min-w-0">
                             <div className="flex items-start justify-between gap-3">
-                              <h3 className="text-sm font-semibold leading-tight line-clamp-2">{resolveName(product)}</h3>
+                              <h3 className="text-sm font-semibold leading-snug line-clamp-2" title={resolveName(product)}>{resolveName(product)}</h3>
                               <span className="text-emerald-300 text-sm shrink-0">₪{product.price}</span>
                             </div>
-                            <div className="text-[12px] text-white/50">
-                            </div>
+                            {product.sku ? <div className="text-[11px] text-white/40 truncate">מק"ט: {product.sku}</div> : null}
 
                             {/* פעולות */}
-                            <div className="grid grid-cols-3 gap-2 pt-1">
+                            <div className="admin-product__actions grid grid-cols-3 gap-2 pt-1">
                               <button
                                 onClick={() => setSelectedProduct(product)}
                                 className="flex items-center justify-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-2 py-2 text-[12px]"
@@ -537,7 +547,8 @@ export default function AdminProducts() {
                   </div>
                 </SectionCard>
               </div>
-            ))
+              );
+            })
           )}
 
           {/* ===== השוואת תפריט (דונאט גלובלי) ===== */}
@@ -559,14 +570,14 @@ export default function AdminProducts() {
               ) : !donutData.length ? (
                 <div className="text-[#8b93a7] text-sm py-6 text-center">{t({ ar: "لا توجد بيانات للعرض.", he: "אין נתונים להצגה." })}</div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-6">
                   {donutData.map((d, idx) => {
                     const color = COLORS[idx % COLORS.length];
                     const restValue = d.total === 0 ? 1 : Math.max(0, d.total - d.value); // להשאיר טבעת גם כש‑total=0
 
                     return (
-                      <div key={d.name} className="bg-[#111824] border border-[#1f2a36] rounded-2xl p-5 flex flex-col items-center">
-                        <div className="w-full" style={{ height: 220 }}>
+                      <div key={d.name} className="bg-[#111824] border border-[#1f2a36] rounded-2xl p-3 sm:p-5 flex flex-col items-center">
+                        <div className="w-full h-[130px] sm:h-[220px]">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
@@ -615,7 +626,7 @@ export default function AdminProducts() {
                             </PieChart>
                           </ResponsiveContainer>
                         </div>
-                        <div className="mt-3 text-sm sm:text-base font-semibold text-white/90 text-center">{d.name}</div>
+                        <div className="mt-2 sm:mt-3 text-xs sm:text-base font-semibold text-white/90 text-center">{d.name}</div>
                       </div>
                     );
                   })}
@@ -623,8 +634,7 @@ export default function AdminProducts() {
               )}
             </SectionCard>
           </div>
-        </main>
-      </div>
+        </div>
 
       {/* מודלים */}
       {showModal && !selectedProduct && (
@@ -647,6 +657,6 @@ export default function AdminProducts() {
           }}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

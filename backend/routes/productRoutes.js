@@ -48,6 +48,17 @@ const SPEC_FILTERS = {
   storage: "specs.storage",
 };
 
+// Filterable `attributes` keys (query param name = key). Must match
+// ATTRIBUTE_GROUPS in frontend/src/utils/products.js, and must not collide
+// with the other query params above.
+const ATTRIBUTE_KEYS = [
+  "cpuSeries", "socket", "cores", "igpu", "chipset", "formFactor", "memoryType", "wifi",
+  "capacity", "modules", "speed", "storageType", "pcieGen", "gpuChipset", "gpuModel", "vram",
+  "caseSize", "boardSupport", "color", "wattage", "efficiency", "atxVersion", "coolingType",
+  "radiatorSize", "accessoryType", "screenSize", "resolution", "refreshRate", "panelType",
+  "screenShape", "os",
+];
+
 // Price buckets used by the storefront price filter (must match
 // PRICE_RANGE_ORDER in frontend/src/utils/products.js).
 const PRICE_RANGES = [
@@ -118,13 +129,47 @@ function buildProductFilter(query, excludeDimension) {
     const values = parseListParam(query[param]);
     if (values.length && excludeDimension !== field) filter[field] = { $in: values };
   });
+  const attributeFilters = ATTRIBUTE_KEYS.filter((key) => excludeDimension !== `attr:${key}`)
+    .map((key) => [key, parseListParam(query[key])])
+    .filter(([, values]) => values.length)
+    .map(([key, values]) => ({ attributes: { $elemMatch: { key, value: { $in: values } } } }));
+  if (attributeFilters.length) filter.$and = attributeFilters;
 
   return filter;
 }
 
 /**
+ * Attribute option counts: { socket: [{ value, count }], ... }. Like the
+ * other facets, a selected key's counts ignore that key's own selection.
+ */
+async function getAttributeFacets(query) {
+  const countBy = (filter, key) =>
+    Product.aggregate([
+      { $match: filter },
+      { $unwind: "$attributes" },
+      ...(key ? [{ $match: { "attributes.key": key } }] : []),
+      { $group: { _id: { key: "$attributes.key", value: "$attributes.value" }, count: { $sum: 1 } } },
+      { $project: { _id: 0, key: "$_id.key", value: "$_id.value", count: 1 } },
+    ]);
+
+  const selectedKeys = ATTRIBUTE_KEYS.filter((key) => parseListParam(query[key]).length);
+  const [unselected, ...selected] = await Promise.all([
+    countBy(buildProductFilter(query)),
+    ...selectedKeys.map((key) => countBy(buildProductFilter(query, `attr:${key}`), key)),
+  ]);
+
+  const result = {};
+  unselected
+    .filter(({ key }) => ATTRIBUTE_KEYS.includes(key) && !selectedKeys.includes(key))
+    .concat(selected.flat())
+    .forEach(({ key, value, count }) => (result[key] ??= []).push({ value, count }));
+  return result;
+}
+
+/**
  * PUBLIC: list active products
  * GET /api/products?q=&category=&type=&brand=&connectivity=&price=&sort=
+ *   plus spec params (cpu=, ram=…) and attribute params (socket=, vram=…)
  */
 productRouter.get("/", async (req, res, next) => {
   try {
@@ -154,8 +199,9 @@ productRouter.get("/", async (req, res, next) => {
 productRouter.get("/facets", async (req, res, next) => {
   try {
     const dimensions = ["productType", "brand", "connectivity", "priceRange", ...Object.values(SPEC_FILTERS)];
-    const [productType, brand, connectivity, priceRange, ...specCounts] = await Promise.all(
-      dimensions.map((dimension) =>
+    const [attributes, productType, brand, connectivity, priceRange, ...specCounts] = await Promise.all([
+      getAttributeFacets(req.query),
+      ...dimensions.map((dimension) =>
         Product.aggregate([
           { $match: buildProductFilter(req.query, dimension) },
           { $match: { [dimension]: { $nin: ["", null] } } },
@@ -163,11 +209,11 @@ productRouter.get("/facets", async (req, res, next) => {
           { $project: { _id: 0, value: "$_id", count: 1 } },
           { $sort: { value: 1 } },
         ])
-      )
-    );
+      ),
+    ]);
 
     const specs = Object.fromEntries(Object.keys(SPEC_FILTERS).map((param, i) => [param, specCounts[i]]));
-    res.json({ productType, brand, connectivity, priceRange, specs });
+    res.json({ productType, brand, connectivity, priceRange, specs, attributes });
   } catch (err) {
     next(err);
   }

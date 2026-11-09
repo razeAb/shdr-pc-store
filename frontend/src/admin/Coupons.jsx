@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Menu, Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import api from "../api";
-import SideMenu from "../layouts/SideMenu";
+import AdminLayout from "../layouts/AdminLayout";
 import { useLang } from "../context/LangContext.jsx";
 
 const emptyForm = { code: "", type: "percent", value: "", active: true };
@@ -13,7 +13,6 @@ export default function Coupons() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { t } = useLang();
 
   const fetchCoupons = async () => {
@@ -74,44 +73,11 @@ export default function Coupons() {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#0f141c] text-white flex">
-      <div className="hidden md:block">
-        <SideMenu
-          logoSrc="/logo.jpeg"
-          brand="SHDR"
-        />
-      </div>
-
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
-      {isSidebarOpen && (
-        <div className="md:hidden">
-          <SideMenu
-            onClose={() => setIsSidebarOpen(false)}
-            logoSrc="/logo.jpeg"
-            brand="SHDR"
-          />
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col">
-        <header className="sticky top-0 z-20 bg-[#11131a] border-b border-white/10">
-          <div className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-            <button
-              className="md:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 transition"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label={t({ ar: "فتح القائمة", he: "פתח תפריט" })}
-            >
-              <Menu size={20} />
-            </button>
-
-            <div>
-              <h1 className="text-[18px] font-bold tracking-tight">{t({ ar: "القسائم", he: "קופונים" })}</h1>
-              <p className="text-[11px] text-[#8b93a7] mt-1">{t({ ar: "إدارة القسائم النشطة", he: "ניהול קופונים פעילים לאתר" })}</p>
-            </div>
-          </div>
-        </header>
-
-        <main className="px-4 sm:px-6 pb-10 space-y-6">
+    <AdminLayout
+      title={t({ ar: "القسائم", he: "קופונים" })}
+      subtitle={t({ ar: "إدارة القسائم النشطة", he: "ניהול קופונים פעילים לאתר" })}
+    >
+        <div className="px-4 sm:px-6 pt-4 space-y-6">
           {(status || error) && (
             <div
               className={`rounded-xl border px-4 py-3 text-sm ${
@@ -132,18 +98,18 @@ export default function Coupons() {
                 type="button"
                 onClick={handleAddCoupon}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-sm disabled:opacity-60"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-sm font-semibold disabled:opacity-60"
               >
                 <Plus size={16} />
                 {isSaving ? t({ ar: "جارٍ الحفظ...", he: "שומר..." }) : t({ ar: "أضف قسيمة", he: "הוסף קופון" })}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <input
                 value={form.code}
                 onChange={(e) => setForm((prev) => ({ ...prev, code: e.target.value }))}
-                className="px-3 py-2 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none"
+                className="col-span-2 md:col-span-1 px-3 py-2.5 rounded-lg bg-[#0f141c] border border-white/10 focus:border-emerald-400 outline-none"
                 placeholder={t({ ar: "الكود (مثال: WELCOME10)", he: "קוד (לדוגמה: WELCOME10)" })}
               />
               <select
@@ -219,8 +185,7 @@ export default function Coupons() {
               </div>
             )}
           </section>
-        </main>
-      </div>
-    </div>
+        </div>
+    </AdminLayout>
   );
 }

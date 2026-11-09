@@ -1,0 +1,21 @@
+/* Phone tweaks shared by every admin screen. */
+.admin-tabbar { padding-bottom: env(safe-area-inset-bottom); }
+
+@media (max-width: 640px) {
+  /* iOS Safari zooms into fields with text under 16px. */
+  .admin-shell input:not([type="checkbox"]):not([type="radio"]),
+  .admin-shell select,
+  .admin-shell textarea {
+    font-size: 16px;
+  }
+
+  /* Products: compact rows (thumbnail beside text) instead of tall cards. */
+  .admin-shell .admin-product { display: grid; grid-template-columns: 76px minmax(0, 1fr); }
+  .admin-shell .admin-product__image { height: 100%; min-height: 76px; }
+  .admin-shell .admin-product__body { padding: 10px; }
+  .admin-shell .admin-product__actions button { padding-block: 8px; }
+
+  /* Top-bar actions drop to their own full-width row. */
+  .admin-shell .admin-actions { width: 100%; }
+  .admin-shell .admin-actions > * { flex: 1; justify-content: center; }
+}
