@@ -11,7 +11,7 @@ import ProductCard from "./ProductCard.jsx";
  *
  * tabs: [{ key, label: {en,he}, getItems: (products) => Product[], getBadge?: (product) => string }]
  */
-export default function ProductRail({ title, tabs, onAdd }) {
+export default function ProductRail({ title, tabs, onAdd, showDetails = false }) {
   const { products, loading, error, refresh } = useProducts();
   const { t } = useLang();
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
@@ -53,6 +53,7 @@ export default function ProductRail({ title, tabs, onAdd }) {
           {items.map((product) => (
             <div className="product-rail__item" key={product.id}>
               <ProductCard
+                showDetails={showDetails}
                 product={product}
                 onAdd={onAdd}
                 badge={activeTab.getBadge ? activeTab.getBadge(product) : getDefaultBadge(product, t)}

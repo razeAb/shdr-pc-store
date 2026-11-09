@@ -5,6 +5,7 @@ import Footer from "./components/Footer.jsx";
 import Toast from "./components/Toast.jsx";
 import Home from "./routes/Home.jsx";
 import Search from "./routes/Search.jsx";
+import Build from "./routes/Build.jsx";
 import Product from "./routes/Product.jsx";
 import Cart from "./routes/Cart.jsx";
 import Account from "./routes/Account.jsx";
@@ -71,6 +72,7 @@ export default function App() {
           <Route element={<AppLayout onToast={showToast} />}>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/build" element={<Build />} />
             <Route path="/product/:slug" element={<Product />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/account" element={<Account />} />

@@ -13,7 +13,7 @@ const pickImage = (images = []) => {
 
 // Primary categories get their own tab in the top nav; the rest live under
 // the "Other Electronics" menu. Order here drives display order everywhere.
-export const PRIMARY_CATEGORIES = ["Gaming PCs", "PC Gaming", "PlayStation", "Xbox", "Nintendo"];
+export const PRIMARY_CATEGORIES = ["Gaming PCs", "PC Components", "PC Gaming", "PlayStation", "Xbox", "Nintendo"];
 
 export const OTHER_CATEGORIES = [
   "Networking Equipment",
@@ -29,6 +29,7 @@ export const HOMEPAGE_CATEGORIES = [...PRIMARY_CATEGORIES, ...OTHER_CATEGORIES];
 
 export const CATEGORY_LABELS = {
   "Gaming PCs": { en: "Gaming PCs", he: "מחשבי גיימינג" },
+  "PC Components": { en: "PC Components", he: "רכיבי מחשב" },
   "PC Gaming": { en: "PC Gaming", he: "גיימינג למחשב" },
   PlayStation: { en: "PlayStation", he: "פלייסטיישן" },
   Xbox: { en: "Xbox", he: "אקסבוקס" },
@@ -69,7 +70,136 @@ export const PRODUCT_TYPE_LABELS = {
   "Stylus / Pencil": { en: "Stylus / Pencil", he: "עט חכם" },
   Tablet: { en: "Tablet", he: "טאבלט" },
   "VR Headset": { en: "VR Headset", he: "משקפי מציאות מדומה" },
-  "Wearable Accessory": { en: "Wearable Accessory", he: "אביזר לביש" }
+  "Wearable Accessory": { en: "Wearable Accessory", he: "אביזר לביש" },
+  CPU: { en: "Processors (CPU)", he: "מעבדים" },
+  Motherboard: { en: "Motherboards", he: "לוחות אם" },
+  "Memory (RAM)": { en: "Memory (RAM)", he: "זיכרונות RAM" },
+  "Graphics Card": { en: "Graphics Cards", he: "כרטיסי מסך" },
+  "Internal Storage": { en: "SSD & Hard Drives", he: "אחסון SSD ודיסקים קשיחים" },
+  "PC Case": { en: "PC Cases", he: "מארזים" },
+  "Power Supply": { en: "Power Supplies", he: "ספקי כוח" },
+  Cooling: { en: "Cooling & Fans", he: "קירור ומאווררים" },
+  "PC Building Accessory": { en: "PC Building Accessories", he: "אביזרים לבניית מחשב" }
+};
+
+// Types listed in this order in menus (a PC build's natural order);
+// anything else follows alphabetically.
+const PRODUCT_TYPE_ORDER = [
+  "CPU",
+  "Motherboard",
+  "Memory (RAM)",
+  "Graphics Card",
+  "Internal Storage",
+  "PC Case",
+  "Power Supply",
+  "Cooling",
+  "PC Building Accessory"
+];
+
+const byProductTypeOrder = (a, b) => {
+  const ia = PRODUCT_TYPE_ORDER.indexOf(a);
+  const ib = PRODUCT_TYPE_ORDER.indexOf(b);
+  if (ia !== -1 || ib !== -1) return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
+  return a.localeCompare(b);
+};
+
+// Spec filters stored in product.attributes. Keys match the API query params
+// (ATTRIBUTE_KEYS in backend/routes/productRoutes.js). `sort`: "number" sorts
+// by the leading number (8GB < 16GB, 1TB after 960GB), "natural" by text.
+export const ATTRIBUTE_GROUPS = [
+  { key: "cpuSeries", title: { en: "Processor series", he: "סדרת מעבד" }, sort: "natural" },
+  { key: "gpuChipset", title: { en: "GPU maker", he: "יצרן שבב גרפי" }, sort: "natural" },
+  { key: "gpuModel", title: { en: "GPU model", he: "דגם כרטיס מסך" }, sort: "natural" },
+  { key: "socket", title: { en: "Socket", he: "תושבת" }, sort: "natural" },
+  { key: "chipset", title: { en: "Chipset", he: "ערכת שבבים" }, sort: "natural" },
+  { key: "cores", title: { en: "Cores", he: "ליבות" }, sort: "number" },
+  { key: "igpu", title: { en: "Integrated graphics", he: "ליבה גרפית מובנית" }, sort: "natural" },
+  { key: "formFactor", title: { en: "Form factor", he: "גודל לוח" }, sort: "natural" },
+  { key: "memoryType", title: { en: "Memory type", he: "סוג זיכרון" }, sort: "natural" },
+  { key: "wifi", title: { en: "Wi-Fi", he: "Wi-Fi" }, sort: "natural" },
+  { key: "storageType", title: { en: "Drive type", he: "סוג כונן" }, sort: "natural" },
+  { key: "capacity", title: { en: "Capacity", he: "נפח" }, sort: "number" },
+  { key: "modules", title: { en: "Modules", he: "תצורת זיכרון" }, sort: "natural" },
+  { key: "speed", title: { en: "Speed", he: "מהירות" }, sort: "number" },
+  { key: "pcieGen", title: { en: "PCIe generation", he: "דור PCIe" }, sort: "natural" },
+  { key: "vram", title: { en: "Video memory", he: "זיכרון גרפי" }, sort: "number" },
+  { key: "caseSize", title: { en: "Case size", he: "גודל מארז" }, sort: "natural" },
+  { key: "boardSupport", title: { en: "Largest motherboard", he: "תמיכה בלוח עד" }, sort: "natural" },
+  { key: "wattage", title: { en: "Wattage", he: "הספק" }, sort: "number" },
+  { key: "efficiency", title: { en: "Efficiency", he: "תקן יעילות" }, sort: "natural" },
+  { key: "atxVersion", title: { en: "ATX standard", he: "תקן ATX" }, sort: "natural" },
+  { key: "coolingType", title: { en: "Cooling type", he: "סוג קירור" }, sort: "natural" },
+  { key: "radiatorSize", title: { en: "Radiator size", he: "גודל רדיאטור" }, sort: "number" },
+  { key: "accessoryType", title: { en: "Accessory type", he: "סוג אביזר" }, sort: "natural" },
+  { key: "screenSize", title: { en: "Screen size", he: "גודל מסך" }, sort: "number" },
+  { key: "resolution", title: { en: "Resolution", he: "רזולוציה" }, sort: "natural" },
+  { key: "refreshRate", title: { en: "Refresh rate", he: "קצב רענון" }, sort: "number" },
+  { key: "panelType", title: { en: "Panel type", he: "סוג פנל" }, sort: "natural" },
+  { key: "screenShape", title: { en: "Screen shape", he: "צורת מסך" }, sort: "natural" },
+  { key: "os", title: { en: "Operating system", he: "מערכת הפעלה" }, sort: "natural" },
+  { key: "color", title: { en: "Color", he: "צבע" }, sort: "natural" }
+];
+
+// Translations for attribute values that are words rather than model names.
+export const ATTRIBUTE_VALUE_LABELS = {
+  Yes: { en: "Yes", he: "כן" },
+  No: { en: "No", he: "לא" },
+  "No Wi-Fi": { en: "No Wi-Fi", he: "ללא Wi-Fi" },
+  Black: { en: "Black", he: "שחור" },
+  White: { en: "White", he: "לבן" },
+  Other: { en: "Other", he: "אחר" },
+  Flat: { en: "Flat", he: "שטוח" },
+  Curved: { en: "Curved", he: "קעור" },
+  "NVMe SSD": { en: "NVMe SSD", he: "SSD NVMe" },
+  "SATA SSD": { en: "SATA SSD", he: "SSD SATA" },
+  HDD: { en: "Hard drive (HDD)", he: "דיסק קשיח (HDD)" },
+  "Liquid Cooler": { en: "Liquid cooler (AIO)", he: "קירור נוזלי" },
+  "CPU Air Cooler": { en: "CPU air cooler", he: "קירור אוויר למעבד" },
+  "Case Fan": { en: "Case fans", he: "מאווררים למארז" },
+  "Cooling Accessory": { en: "Cooling accessories", he: "אביזרי קירור" },
+  "Case Panel": { en: "Case panels & glass", he: "פנלים וזכוכיות למארז" },
+  "GPU Support": { en: "GPU supports", he: "תומכים לכרטיס מסך" },
+  "Expansion Card": { en: "Expansion cards", he: "כרטיסי הרחבה" },
+  "Cables & Adapters": { en: "Cables & adapters", he: "כבלים ומתאמים" },
+  "Mid Tower": { en: "Mid Tower", he: "Mid Tower (בינוני)" },
+  "Mini Tower": { en: "Mini Tower", he: "Mini Tower (קטן)" },
+  "Full Tower": { en: "Full Tower", he: "Full Tower (גדול)" },
+  Slim: { en: "Slim", he: "Slim (דק)" },
+  "No OS (FreeDOS)": { en: "No OS (FreeDOS)", he: "ללא מערכת הפעלה" },
+  Integrated: { en: "Integrated graphics", he: "גרפיקה מובנית" }
+};
+
+const leadingNumber = (value) => {
+  const match = /(\d+(?:\.\d+)?)\s*(TB)?/i.exec(value);
+  if (!match) return Number.POSITIVE_INFINITY;
+  return Number(match[1]) * (match[2] ? 1000 : 1);
+};
+
+export const compareAttributeValues = (sort) => (a, b) =>
+  sort === "number"
+    ? leadingNumber(a.value) - leadingNumber(b.value) || a.value.localeCompare(b.value)
+    : a.value.localeCompare(b.value, undefined, { numeric: true });
+
+// Imported descriptions end with a "מפרט טכני:" block of "label: value"
+// lines. Split it out so the product page can show a proper spec table;
+// descriptions without that block come back as plain text.
+const SPEC_SHEET_HEADER = "מפרט טכני:";
+
+export const parseSpecSheet = (description = "") => {
+  const index = description.indexOf(SPEC_SHEET_HEADER);
+  if (index === -1) return { intro: description.trim(), rows: [] };
+  const rows = description
+    .slice(index + SPEC_SHEET_HEADER.length)
+    .split("\n")
+    .map((line) => {
+      const separator = line.indexOf(":");
+      if (separator <= 0) return null;
+      const label = line.slice(0, separator).trim();
+      const value = line.slice(separator + 1).trim();
+      return label && value ? { label, value } : null;
+    })
+    .filter(Boolean);
+  return { intro: description.slice(0, index).trim(), rows };
 };
 
 export const CONNECTIVITY_LABELS = {
@@ -115,7 +245,7 @@ export const getProductTypesByCategory = (products) => {
     map[product.category].add(product.productType);
   });
   return Object.fromEntries(
-    Object.entries(map).map(([category, types]) => [category, Array.from(types).sort()])
+    Object.entries(map).map(([category, types]) => [category, Array.from(types).sort(byProductTypeOrder)])
   );
 };
 
@@ -136,9 +266,14 @@ export const getNewArrivals = (products, limit = RAIL_LIMIT) =>
 
 // "Deals" = cheapest priceRange buckets, cheapest first — there's no discount
 // field on Product, so this is the most honest proxy available.
+// Small build parts (cables, screws, splitters) are cheap but aren't deals.
+const NOT_DEAL_TYPES = ["PC Building Accessory"];
+
 export const getDeals = (products, limit = RAIL_LIMIT) => {
   const cheapBuckets = PRICE_RANGE_ORDER.slice(0, 2);
-  const pool = products.filter((product) => cheapBuckets.includes(product.priceRange));
+  const pool = products.filter(
+    (product) => cheapBuckets.includes(product.priceRange) && !NOT_DEAL_TYPES.includes(product.productType)
+  );
   return [...(pool.length ? pool : products)].sort((a, b) => a.price - b.price).slice(0, limit);
 };
 
@@ -277,7 +412,9 @@ export const normalizeProduct = (product) => {
     createdAt: product?.createdAt || null,
     image: pickImage(product?.images),
     images: Array.isArray(product?.images) ? product.images : [],
-    videos: Array.isArray(product?.videos) ? product.videos : []
+    videos: Array.isArray(product?.videos) ? product.videos : [],
+    specs: product?.specs || {},
+    attributes: Array.isArray(product?.attributes) ? product.attributes : []
   };
 };
 
