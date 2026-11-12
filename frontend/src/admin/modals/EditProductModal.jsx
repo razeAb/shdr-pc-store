@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MediaCarousel } from "../../components/MediaCarousel.jsx";
 import { useLang } from "../../context/LangContext";
 import { getDescriptionWarning } from "../../utils/products";
+import OwnerProductControls from "./OwnerProductControls.jsx";
 import SpecsFields, { EMPTY_SPECS, SPECS_CATEGORIES } from "./SpecsFields.jsx";
 
 const pick = (obj, keys) => keys.reduce((acc, k) => (obj[k] !== undefined ? { ...acc, [k]: obj[k] } : acc), {});
@@ -25,6 +26,23 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
   };
 
   const [form, setForm] = useState(initial);
+  const [privateProduct, setPrivateProduct] = useState(product);
+  const [inStock, setInStock] = useState(product.inStock !== false);
+  const [stockSaving, setStockSaving] = useState(false);
+  const locked = privateProduct.automationLocked === true;
+
+  const saveStock = async () => {
+    setStockSaving(true);
+    setError("");
+    try {
+      const { data } = await api.patch(`/api/products/${product._id}/stock`, { inStock }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      onUpdate?.({ ...product, ...data, inStock });
+      onClose();
+    } catch (err) { setError(err.response?.data?.message || "עדכון המלאי נכשל."); }
+    finally { setStockSaving(false); }
+  };
   const [imageFiles, setImageFiles] = useState([]);
   const [videoFiles, setVideoFiles] = useState([]);
   const [imageUrl, setImageUrl] = useState("");
@@ -140,6 +158,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (locked) { setError("המוצר נעול. אפשר לעדכן מלאי בלבד, או לבטל נעילה במפורש."); return; }
     setSaving(true);
     setError("");
     try {
@@ -168,9 +187,10 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             .map((tag) => tag.trim())
             .filter(Boolean),
           isActive: !!form.isActive,
+          inStock,
           specs: SPECS_CATEGORIES.includes(form.category) ? form.specs : undefined,
         },
-        ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive", "specs"]
+        ["title", "price", "sku", "category", "subCategory", "description", "tags", "images", "videos", "isActive", "inStock", "specs"]
       );
 
       const response = await api.put(`/api/products/${product._id}`, payload, {
@@ -203,7 +223,19 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
 
         {error && <div className="mb-4 text-red-300 text-sm bg-red-900/30 border border-red-700/50 rounded p-2">{error}</div>}
 
+        {privateProduct.canManagePrivateProducts && <OwnerProductControls product={privateProduct} onSaved={(metadata) => {
+          setPrivateProduct((prev) => ({ ...prev, ...metadata }));
+          onUpdate?.({ ...product, ...metadata });
+        }} />}
+        <section className="mb-5 rounded-xl border border-sky-400/30 bg-sky-400/5 p-4 space-y-3" aria-label="עדכון מלאי">
+          <h3 className="font-semibold">מצב מלאי</h3>
+          <label className="flex gap-2"><input type="checkbox" name="stockIsActive" checked={inStock} onChange={(e) => setInStock(e.target.checked)} />זמין במלאי</label>
+          <p className="text-xs text-white/65">{inStock ? "המוצר זמין לרכישה." : "המוצר יוצג כאזל מהמלאי ולא יהיה ניתן לרכוש אותו."} עדכון זה מותר גם כשהמוצר נעול.</p>
+          <button type="button" onClick={saveStock} disabled={stockSaving} className="rounded-lg bg-sky-600 px-3 py-2 disabled:opacity-50">{stockSaving ? "מעדכן מלאי…" : "עדכן מלאי בלבד"}</button>
+        </section>
+        {locked && <p role="status" className="mb-4 text-amber-200">🔒 מחיר ותוכן נעולים. עדכון המלאי נשאר זמין.</p>}
         <form onSubmit={handleSubmit} className="space-y-4 text-right">
+          <fieldset disabled={locked || stockSaving} className="space-y-4 disabled:opacity-50">
           <label className="block text-sm">{t({ ar: "اسم المنتج", he: "שם מוצר" })}</label>
           <input
             type="text"
@@ -423,10 +455,11 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
             {t({ ar: "نشط للعرض في القائمة", he: "פעיל להצגה בתפריט" })}
           </label>
 
+          </fieldset>
           <div className="flex justify-between pt-4 gap-2">
             <button
               type="submit"
-              disabled={uploading || saving}
+              disabled={locked || stockSaving || uploading || saving}
               className="bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white px-5 py-2 rounded font-bold"
             >
               {saving ? t({ ar: "جارٍ الحفظ...", he: "שומר..." }) : t({ ar: "💾 حفظ", he: "💾 שמור" })}

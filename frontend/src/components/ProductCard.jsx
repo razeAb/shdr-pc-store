@@ -9,6 +9,7 @@ export default function ProductCard({ product, onAdd, badge, showDetails = false
   const { t } = useLang();
   const shortTitle = getShortTitle(product.title);
   const isPriced = hasPrice(product);
+  const inStock = product.inStock !== false;
   const specLabels = { cpu: { en: "CPU", he: "מעבד" }, gpu: { en: "GPU", he: "כרטיס מסך" }, ram: { en: "RAM", he: "זיכרון" }, storage: { en: "Storage", he: "אחסון" } };
   const details = showDetails ? [
     ...Object.entries(specLabels).map(([key, label]) => ({ key, label, value: product.specs?.[key] })),
@@ -17,7 +18,7 @@ export default function ProductCard({ product, onAdd, badge, showDetails = false
   return (
     <article className="product-card">
       <Link className="product-image" to={`/product/${product.slug}`}>
-        {hasDiscount ? (
+        {!inStock ? <span className="badge">{t({ en: "Out of stock", he: "אזל מהמלאי" })}</span> : hasDiscount ? (
           <span className="badge">{t({ en: "On sale", he: "בהנחה" })}</span>
         ) : badge ? (
           <span className="badge badge--info">{badge}</span>
@@ -50,9 +51,9 @@ export default function ProductCard({ product, onAdd, badge, showDetails = false
           type="button"
           className="secondary-button"
           onClick={() => onAdd(product)}
-          disabled={!isPriced}
+          disabled={!isPriced || !inStock}
         >
-          <ShoppingBag size={16} aria-hidden="true" />{t({ en: "Add to cart", he: "הוסף לעגלה" })}
+          <ShoppingBag size={16} aria-hidden="true" />{t(inStock ? { en: "Add to cart", he: "הוסף לעגלה" } : { en: "Out of stock", he: "אזל מהמלאי" })}
         </button>
       </div>
     </article>

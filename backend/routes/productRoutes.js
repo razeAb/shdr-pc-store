@@ -5,6 +5,8 @@ import { Category } from "../models/Category.js";
 import { productSchema } from "../utils/validators.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireAdmin } from "../middleware/admin.js";
+import { z } from "zod";
+import { resolveProductOwner, requireProductOwner, privateProductFields, productForViewer, privateProductSelection, unlockedProductFilter, rejectPrivateProductFields } from "../utils/productOwnership.js";
 
 export const productRouter = express.Router();
 
@@ -181,9 +183,9 @@ productRouter.get("/", async (req, res, next) => {
     // cards go last so real products lead the listing.
     if (!SORT_OPTIONS[req.query.sort]) {
       const isGiftCard = (product) => product.productType === GIFT_CARD_TYPE;
-      return res.json([...products.filter((p) => !isGiftCard(p)), ...products.filter(isGiftCard)]);
+      return res.json([...products.filter((p) => !isGiftCard(p)), ...products.filter(isGiftCard)].map((p) => productForViewer(p)));
     }
-    res.json(products);
+    res.json(products.map((p) => productForViewer(p)));
   } catch (err) {
     next(err);
   }
@@ -223,10 +225,10 @@ productRouter.get("/facets", async (req, res, next) => {
  * ADMIN: list all (active + inactive) for admin dashboard
  * GET /api/products/admin/all
  */
-async function listAllProducts(_req, res, next) {
+async function listAllProducts(req, res, next) {
   try {
-    const products = await Product.find({}).sort({ createdAt: -1 }).lean();
-    res.json(products);
+    const products = await Product.find({}).select(req.isProductOwner ? privateProductSelection : "").sort({ createdAt: -1 }).lean();
+    res.json(products.map((product) => productForViewer(product, req)));
   } catch (err) {
     next(err);
   }
@@ -236,8 +238,66 @@ async function listAllProducts(_req, res, next) {
  * ADMIN: list all (active + inactive) for admin dashboard
  * GET /api/products/admin/all/list
  */
-productRouter.get("/admin/all", requireAuth, requireAdmin, listAllProducts);
-productRouter.get("/admin/all/list", requireAuth, requireAdmin, listAllProducts);
+productRouter.get("/admin/all", requireAuth, requireAdmin, resolveProductOwner, listAllProducts);
+productRouter.get("/admin/all/list", requireAuth, requireAdmin, resolveProductOwner, listAllProducts);
+
+
+async function missingOrLocked(id, res) {
+  if (!(await Product.exists({ _id: id }))) return res.status(404).json({ message: "Product not found" });
+  return res.status(423).json({ code: "PRODUCT_LOCKED", message: "המוצר נעול לעריכת תוכן ומחיר. עדכון מלאי בלבד נשאר מותר." });
+}
+
+const ownerProductSchema = z.object({
+  supplier: z.string().trim().max(200).optional(),
+  purchaseCost: z.number().finite().nonnegative().nullable().optional(),
+  costIncludesVat: z.boolean().optional(),
+  automationLocked: z.boolean().optional(),
+}).strict().refine((data) => Object.keys(data).length > 0);
+
+// These routes must precede /:id. No public or ordinary admin response exposes purchasing data.
+productRouter.get("/owner/access", requireAuth, requireAdmin, resolveProductOwner, (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ canManagePrivateProducts: req.isProductOwner });
+});
+
+productRouter.get("/owner/:id", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid id" });
+    const product = await Product.findById(req.params.id).select(privateProductSelection).lean();
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(privateProductFields(product, req));
+  } catch (error) { next(error); }
+});
+
+// Stock is deliberately independent of the content/price lock.
+productRouter.patch("/:id/stock", requireAuth, requireAdmin, resolveProductOwner, async (req, res, next) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid id" });
+    const parsed = z.object({ inStock: z.boolean() }).strict().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Stock updates may contain inStock only" });
+    const product = await Product.findByIdAndUpdate(req.params.id, { $set: parsed.data }, { new: true }).select(req.isProductOwner ? privateProductSelection : "");
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(productForViewer(product, req));
+  } catch (error) { next(error); }
+});
+
+// This endpoint changes ONLY private metadata and the lock, never catalog fields.
+productRouter.patch("/owner/:id", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
+  try {
+    res.set("Cache-Control", "no-store");
+    if (!mongoose.isValidObjectId(req.params.id)) return res.status(400).json({ message: "Invalid id" });
+    const parsed = ownerProductSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid private product data" });
+    const update = {};
+    for (const [key, value] of Object.entries(parsed.data)) {
+      update[key === "automationLocked" ? key : `ownerInfo.${key}`] = value;
+    }
+    const product = await Product.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true }).select(privateProductSelection);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(privateProductFields(product, req));
+  } catch (error) { next(error); }
+});
 
 /**
  * PUBLIC: get one active product
@@ -251,7 +311,7 @@ productRouter.get("/:id", async (req, res, next) => {
     const product = await Product.findOne({ _id: id, isActive: true }).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    res.json(product);
+    res.json(productForViewer(product, req));
   } catch (err) {
     next(err);
   }
@@ -261,7 +321,7 @@ productRouter.get("/:id", async (req, res, next) => {
  * ADMIN: create product
  * POST /api/products
  */
-productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
+productRouter.post("/", requireAuth, requireAdmin, resolveProductOwner, rejectPrivateProductFields, async (req, res, next) => {
   try {
     const parsed = productSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -273,7 +333,7 @@ productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
 
     const created = await Product.create(withPriceRange(parsed.data));
     await ensureCategory(created.category);
-    res.status(201).json(created);
+    res.status(201).json(productForViewer(created, req));
   } catch (err) {
     next(err);
   }
@@ -283,7 +343,7 @@ productRouter.post("/", requireAuth, requireAdmin, async (req, res, next) => {
  * ADMIN: update product
  * PUT /api/products/:id
  */
-productRouter.put("/:id", requireAuth, requireAdmin, async (req, res, next) => {
+productRouter.put("/:id", requireAuth, requireAdmin, resolveProductOwner, rejectPrivateProductFields, async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid id" });
@@ -296,11 +356,11 @@ productRouter.put("/:id", requireAuth, requireAdmin, async (req, res, next) => {
     const conflict = await findSkuConflict(parsed.data.sku, id);
     if (conflict) return skuConflictResponse(res, conflict);
 
-    const updated = await Product.findByIdAndUpdate(id, withPriceRange(parsed.data), { new: true });
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    const updated = await Product.findOneAndUpdate(unlockedProductFilter(id), withPriceRange(parsed.data), { new: true }).select(req.isProductOwner ? privateProductSelection : "");
+    if (!updated) return missingOrLocked(id, res);
     await ensureCategory(updated.category);
 
-    res.json(updated);
+    res.json(productForViewer(updated, req));
   } catch (err) {
     next(err);
   }
@@ -310,7 +370,7 @@ productRouter.put("/:id", requireAuth, requireAdmin, async (req, res, next) => {
  * ADMIN: edit product (partial update)
  * PATCH /api/products/:id/edit
  */
-productRouter.patch("/:id/edit", requireAuth, requireAdmin, async (req, res, next) => {
+productRouter.patch("/:id/edit", requireAuth, requireAdmin, resolveProductOwner, rejectPrivateProductFields, async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid id" });
@@ -327,16 +387,16 @@ productRouter.patch("/:id/edit", requireAuth, requireAdmin, async (req, res, nex
     const conflict = await findSkuConflict(parsed.data.sku, id);
     if (conflict) return skuConflictResponse(res, conflict);
 
-    const updated = await Product.findByIdAndUpdate(id, withPriceRange(parsed.data), {
+    const updated = await Product.findOneAndUpdate(unlockedProductFilter(id), withPriceRange(parsed.data), {
       new: true,
       runValidators: true,
-    });
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    }).select(req.isProductOwner ? privateProductSelection : "");
+    if (!updated) return missingOrLocked(id, res);
     if (parsed.data.category) {
       await ensureCategory(parsed.data.category);
     }
 
-    res.json(updated);
+    res.json(productForViewer(updated, req));
   } catch (err) {
     next(err);
   }
@@ -346,15 +406,15 @@ productRouter.patch("/:id/edit", requireAuth, requireAdmin, async (req, res, nex
  * ADMIN: soft delete (set isActive=false)
  * DELETE /api/products/:id
  */
-productRouter.delete("/:id", requireAuth, requireAdmin, async (req, res, next) => {
+productRouter.delete("/:id", requireAuth, requireAdmin, resolveProductOwner, async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid id" });
 
-    const updated = await Product.findByIdAndUpdate(id, { isActive: false }, { new: true });
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    const updated = await Product.findOneAndUpdate(unlockedProductFilter(id), { isActive: false }, { new: true }).select(req.isProductOwner ? privateProductSelection : "");
+    if (!updated) return missingOrLocked(id, res);
 
-    res.json({ message: "Product deactivated", product: updated });
+    res.json({ message: "Product deactivated", product: productForViewer(updated, req) });
   } catch (err) {
     next(err);
   }
@@ -364,18 +424,17 @@ productRouter.delete("/:id", requireAuth, requireAdmin, async (req, res, next) =
  * ADMIN: toggle active
  * PATCH /api/products/:id/toggle
  */
-productRouter.patch("/:id/toggle", requireAuth, requireAdmin, async (req, res, next) => {
+productRouter.patch("/:id/toggle", requireAuth, requireAdmin, resolveProductOwner, async (req, res, next) => {
   try {
     const { id } = req.params;
     if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: "Invalid id" });
 
-    const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+    const product = await Product.findOneAndUpdate(
+      unlockedProductFilter(id), [{ $set: { isActive: { $not: ["$isActive"] } } }], { new: true }
+    ).select(req.isProductOwner ? privateProductSelection : "");
+    if (!product) return missingOrLocked(id, res);
 
-    product.isActive = !product.isActive;
-    await product.save();
-
-    res.json(product);
+    res.json(productForViewer(product, req));
   } catch (err) {
     next(err);
   }
@@ -385,9 +444,9 @@ productRouter.patch("/:id/toggle", requireAuth, requireAdmin, async (req, res, n
  * ADMIN: activate all products
  * PATCH /api/products/activate-all
  */
-productRouter.patch("/activate-all", requireAuth, requireAdmin, async (_req, res, next) => {
+productRouter.patch("/activate-all", requireAuth, requireAdmin, resolveProductOwner, async (_req, res, next) => {
   try {
-    await Product.updateMany({}, { $set: { isActive: true } });
+    await Product.updateMany(unlockedProductFilter(), { $set: { isActive: true } });
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -398,9 +457,9 @@ productRouter.patch("/activate-all", requireAuth, requireAdmin, async (_req, res
  * ADMIN: deactivate all products
  * PATCH /api/products/deactivate-all
  */
-productRouter.patch("/deactivate-all", requireAuth, requireAdmin, async (_req, res, next) => {
+productRouter.patch("/deactivate-all", requireAuth, requireAdmin, resolveProductOwner, async (_req, res, next) => {
   try {
-    await Product.updateMany({}, { $set: { isActive: false } });
+    await Product.updateMany(unlockedProductFilter(), { $set: { isActive: false } });
     res.json({ ok: true });
   } catch (err) {
     next(err);

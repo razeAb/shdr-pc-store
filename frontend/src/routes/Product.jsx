@@ -171,9 +171,9 @@ export default function Product() {
             )}
           </div>
 
-          <button type="button" className="primary-button product-detail__add" onClick={() => handleAdd()} disabled={!isPriced}>
+          <button type="button" className="primary-button product-detail__add" onClick={() => handleAdd()} disabled={!isPriced || product.inStock === false}>
             <ShoppingBag size={18} aria-hidden="true" />
-            {t({ en: "Add to cart", he: "הוסף לעגלה" })}
+            {t(product.inStock === false ? { en: "Out of stock", he: "אזל מהמלאי" } : { en: "Add to cart", he: "הוסף לעגלה" })}
           </button>
 
           <ul className="product-trust">

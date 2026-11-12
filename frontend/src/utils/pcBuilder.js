@@ -237,7 +237,7 @@ export const checkPart = (stepKey, product, parts, platform) => {
 /** Products offered in a step, compatible first and cheapest first. */
 export const getStepOptions = (products, step, parts, platform) => {
   const results = products
-    .filter((product) => product.productType === step.type && hasPrice(product))
+    .filter((product) => product.productType === step.type && hasPrice(product) && product.inStock !== false)
     .map((product) => ({ product, check: checkPart(step.key, product, parts, platform) }));
   return {
     options: results.filter((item) => item.check.ok),

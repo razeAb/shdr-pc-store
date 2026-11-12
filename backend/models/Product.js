@@ -15,7 +15,18 @@ const productSchema = new mongoose.Schema(
         connectivity: { type: String, default: "" },
         priceRange: { type: String, default: "" },
         isActive: { type: Boolean, default: true },
+        inStock: { type: Boolean, default: true },
         tags: [{ type: String }],
+        // Never included in public queries; explicitly selected for the owner only.
+        ownerInfo: {
+            type: new mongoose.Schema({
+                supplier: { type: String, default: "", maxlength: 200 },
+                purchaseCost: { type: Number, default: null, min: 0 },
+                costIncludesVat: { type: Boolean, default: true },
+            }, { _id: false }),
+            select: false,
+        },
+        automationLocked: { type: Boolean, default: false, select: false },
         // Filterable specs for computers (empty for other products).
         specs: {
             cpuBrand: { type: String, default: "" },

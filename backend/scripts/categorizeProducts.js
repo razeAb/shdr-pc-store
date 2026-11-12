@@ -166,7 +166,7 @@ const categorizeProduct = (product) => {
 
 const run = async () => {
   await connectDB(process.env.MONGO_URI);
-  const products = await Product.find({});
+  const products = await Product.find({ automationLocked: { $ne: true } });
   const ops = [];
 
   products.forEach((product) => {
@@ -181,7 +181,7 @@ const run = async () => {
     if (Object.keys(updates).length === 0) return;
       ops.push({
         updateOne: {
-          filter: { _id: product._id },
+          filter: { _id: product._id, automationLocked: { $ne: true } },
           update: { $set: updates }
         }
       });

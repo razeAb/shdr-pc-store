@@ -510,6 +510,7 @@ async function run() {
   // The imported batch: everything whose images come from the supplier feed,
   // plus anything already moved under "PC Components" (re-runs are safe).
   const products = await Product.find({
+    automationLocked: { $ne: true },
     $or: [
       { images: { $elemMatch: { $regex: "morlevi\\.co\\.il" } }, createdAt: { $gte: new Date("2026-11-07") } },
       { category: COMPONENTS_CATEGORY },
@@ -591,7 +592,7 @@ async function run() {
       (report.missingAttrs[`${productType}.${key}`] ??= []).push(title);
     });
 
-    ops.push({ updateOne: { filter: { _id: product._id }, update: { $set: update } }, preview: { title, productType, brand, attrs, specs: update.specs } });
+    ops.push({ updateOne: { filter: { _id: product._id, automationLocked: { $ne: true } }, update: { $set: update } }, preview: { title, productType, brand, attrs, specs: update.specs } });
   }
 
   // ---- report ----

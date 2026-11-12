@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth.js";
 import { requireAdmin } from "../middleware/admin.js";
 import { Product } from "../models/Product.js";
 import { Order } from "../models/Order.js";
+import { resolveProductOwner, privateProductFields, privateProductSelection } from "../utils/productOwnership.js";
 import { Coupon } from "../models/Coupon.js";
 
 export const adminRouter = express.Router();
@@ -41,8 +42,9 @@ function mapOrder(order) {
   };
 }
 
-function mapProduct(product) {
+function mapProduct(product, req) {
   return {
+    ...privateProductFields(product, req),
     _id: product._id,
     title: product.title,
     name: product.title,
@@ -56,6 +58,7 @@ function mapProduct(product) {
     price: product.price,
     sku: product.sku || "",
     isActive: product.isActive,
+    inStock: product.inStock !== false,
     images: product.images,
     image: Array.isArray(product.images) ? product.images[0] : "",
     videos: product.videos || [],
@@ -64,15 +67,16 @@ function mapProduct(product) {
   };
 }
 
-adminRouter.use(requireAuth, requireAdmin);
+adminRouter.use(requireAuth, requireAdmin, resolveProductOwner);
 
 /**
  * GET /api/admin/dashboard
  */
-adminRouter.get("/dashboard", async (_req, res, next) => {
+adminRouter.get("/dashboard", async (req, res, next) => {
   try {
+    res.set("Cache-Control", "no-store");
     const [products, orders] = await Promise.all([
-      Product.find({}).sort({ createdAt: -1 }).lean(),
+      Product.find({}).select(req.isProductOwner ? privateProductSelection : "").sort({ createdAt: -1 }).lean(),
       Order.find({}).sort({ createdAt: -1 }).lean(),
     ]);
 
@@ -122,7 +126,7 @@ adminRouter.get("/dashboard", async (_req, res, next) => {
       .slice(0, 5);
 
     return res.json({
-      products: products.map(mapProduct),
+      products: products.map((product) => mapProduct(product, req)),
       orders: orders.map(mapOrder),
       topCustomers,
       hotProducts,

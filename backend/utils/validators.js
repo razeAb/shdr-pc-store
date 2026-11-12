@@ -38,6 +38,7 @@ export const productSchema = z.object({
   connectivity: z.string().max(200).optional(),
   priceRange: z.string().max(200).optional(),
   isActive: z.boolean().optional().default(true),
+  inStock: z.boolean().optional(),
   tags: z.array(z.string().min(1).max(50)).optional().default([]),
   specs: z
     .object({

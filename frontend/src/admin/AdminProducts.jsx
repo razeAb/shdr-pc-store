@@ -512,6 +512,12 @@ export default function AdminProducts() {
                               <span className="text-emerald-300 text-sm shrink-0">₪{product.price}</span>
                             </div>
                             {product.sku ? <div className="text-[11px] text-white/40 truncate">מק"ט: {product.sku}</div> : null}
+                            {product.canManagePrivateProducts && <div className="text-xs text-amber-200/90 space-y-1" aria-label="מידע פרטי לבעלים">
+                              <div>ספק: {product.ownerInfo?.supplier || "לא הוגדר"}</div>
+                              <div>עלות שלי: {product.ownerInfo?.purchaseCost == null ? "לא הוזנה" : `₪${product.ownerInfo.purchaseCost} ${product.ownerInfo.costIncludesVat ? "כולל מע״מ" : "לפני מע״מ"}`}</div>
+                              {product.automationLocked && <div>🔒 מחיר ותוכן נעולים · מלאי מתעדכן</div>}
+                            </div>}
+                            {product.inStock === false && <div className="text-xs text-rose-300">אזל מהמלאי</div>}
 
                             {/* פעולות */}
                             <div className="admin-product__actions grid grid-cols-3 gap-2 pt-1">

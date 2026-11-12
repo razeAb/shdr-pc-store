@@ -31,6 +31,8 @@ checkoutRouter.post("/", optionalAuth, async (req, res, next) => {
     }
 
     const products = await Product.find({ _id: { $in: productIds }, isActive: true }).lean();
+    const unavailable = products.find((product) => product.inStock === false);
+    if (unavailable) return res.status(409).json({ code: "OUT_OF_STOCK", message: `המוצר אזל מהמלאי: ${unavailable.title}` });
     const productMap = new Map(products.map((p) => [p._id.toString(), p]));
     const missingIds = productIds.filter((id) => !productMap.has(id));
     const deals = missingIds.length

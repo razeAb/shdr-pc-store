@@ -403,6 +403,7 @@ export const normalizeProduct = (product) => {
     rating: Number.isFinite(product?.rating) ? product.rating : undefined,
     tags: Array.isArray(product?.tags) ? product.tags : [],
     sku: product?.sku || "",
+    inStock: product?.inStock !== false,
     category: product?.category || "",
     subCategory: product?.subCategory || "",
     productType: product?.productType || "",
