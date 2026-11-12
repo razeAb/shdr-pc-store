@@ -14,6 +14,7 @@ let product;
 const query = value => ({ select() { return this; }, lean: async () => value, then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } });
 User.findById = userId => query({ _id: userId, role: 'admin', email: userId === 'owner' ? 'owner@example.test' : 'other@example.test' });
 Product.findById = () => query(structuredClone(product));
+Product.find = (filter) => query(filter.sku?.$in?.includes(product.sku) ? [{ _id: id, sku: product.sku }] : []);
 Product.findOne = () => query(structuredClone(product));
 Product.exists = async () => ({ _id: id });
 Product.findByIdAndUpdate = (_id, update) => {
@@ -26,7 +27,7 @@ Product.findByIdAndUpdate = (_id, update) => {
 Product.findOneAndUpdate = (filter, update) => {
   assert.deepEqual(filter.automationLocked, { $ne: true });
   if (product.automationLocked) return query(null);
-  Object.assign(product, update);
+  Object.assign(product, update.$set || update);
   return query(structuredClone(product));
 };
 const app = express();
@@ -68,5 +69,24 @@ test('owner-only data, atomic content lock, and independent stock updates', asyn
   assert.equal((await request(`/owner/${id}`, { automationLocked: false })).status, 200);
   assert.equal((await request(`/${id}/edit`, { price: 200 })).status, 200);
   assert.equal(product.price, 200);
+  const importRow = { sku: 'AL-1', supplier: 'Verified supplier', purchaseCost: 65, costIncludesVat: true };
+  assert.equal((await request('/owner/import', { rows: [importRow] }, 'other')).status, 403);
+  assert.equal((await request('/owner/import', { rows: [{ ...importRow, price: 1 }] })).status, 400);
+  assert.equal((await request('/owner/import', { rows: [importRow, importRow] })).status, 400);
+  product.automationLocked = true;
+  const lockedImport = await request('/owner/import', { rows: [importRow] });
+  assert.equal(lockedImport.status, 200);
+  assert.equal(lockedImport.body.results[0].status, 'locked-or-missing');
+  assert.equal(product.ownerInfo.purchaseCost, null);
+  product.automationLocked = false;
+  const imported = await request('/owner/import', { rows: [importRow, { ...importRow, sku: 'unknown' }] });
+  assert.equal(imported.status, 200);
+  assert.equal(imported.body.results[0].status, 'saved');
+  assert.equal(imported.body.results[1].status, 'missing');
+  assert.equal(product.ownerInfo.purchaseCost, 65);
+  assert.equal(product.price, 200);
+  assert.equal(product.title, 'Original');
+  assert.equal(product.inStock, true);
+
 });
 test.after(() => server.close());

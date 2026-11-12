@@ -282,6 +282,38 @@ productRouter.patch("/:id/stock", requireAuth, requireAdmin, resolveProductOwner
   } catch (error) { next(error); }
 });
 
+// Owner-only purchasing import: exact SKU match, atomic lock guard, no catalog writes.
+productRouter.patch("/owner/import", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
+  try {
+    const rowSchema = z.object({
+      sku: z.string().trim().min(1).max(200),
+      supplier: z.string().trim().min(1).max(200),
+      purchaseCost: z.number().finite().nonnegative(),
+      costIncludesVat: z.boolean(),
+    }).strict();
+    const parsed = z.object({ rows: z.array(rowSchema).min(1).max(100) }).strict().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid purchase import" });
+    const skus = parsed.data.rows.map((row) => row.sku);
+    if (new Set(skus).size !== skus.length) return res.status(400).json({ message: "Duplicate SKU in import" });
+    // Legacy records may contain duplicate SKUs: never choose one arbitrarily.
+    const matches = await Product.find({ sku: { $in: skus } }).select("sku").lean();
+    const counts = new Map();
+    for (const product of matches) counts.set(product.sku, (counts.get(product.sku) || 0) + 1);
+    const results = [];
+    for (const { sku, ...ownerInfo } of parsed.data.rows) {
+      if (counts.get(sku) !== 1) {
+        results.push({ sku, status: counts.has(sku) ? "ambiguous" : "missing" });
+        continue;
+      }
+      const product = await Product.findOneAndUpdate(
+        { sku, ...unlockedProductFilter() }, { $set: { ownerInfo } }, { new: true, runValidators: true }
+      ).select(privateProductSelection);
+      results.push(product ? { sku, status: "saved", ...privateProductFields(product, req) } : { sku, status: "locked-or-missing" });
+    }
+    res.json({ results });
+  } catch (error) { next(error); }
+});
+
 // This endpoint changes ONLY private metadata and the lock, never catalog fields.
 productRouter.patch("/owner/:id", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
   try {

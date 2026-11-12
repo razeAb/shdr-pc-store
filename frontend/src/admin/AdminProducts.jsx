@@ -3,6 +3,7 @@ import api from "../api";
 import AdminLayout from "../layouts/AdminLayout";
 import AddProductModal from "./modals/AddProductMoadl"; // keep your original filename
 import EditProductModal from "./modals/EditProductModal";
+import OwnerPurchaseImport from "./OwnerPurchaseImport";
 import Button from "../components/common/Button";
 import { ChevronDown, Pencil, Trash2, Eye, EyeOff, Plus, Search } from "lucide-react";
 import { useLang } from "../context/LangContext";
@@ -185,25 +186,7 @@ export default function AdminProducts() {
 
   /** קטגוריות למסננים */
   const categories = useMemo(() => {
-    const fromProducts = new Set(products.map((p) => p.category || "לא מקוטלג"));
-    const fromList = new Set((categoryList || []).map((c) => c.name).filter(Boolean));
-    const merged = new Set([...fromList, ...fromProducts]);
-    return ["הכל", ...Array.from(merged)];
-  }, [products, categoryList]);
-
-  const handleAddCategory = async () => {
-    const name = categoryName.trim();
-    if (!name) return;
-    setCategorySaving(true);
-    setCategoryError("");
-    try {
-      const token = localStorage.getItem("token");
-      const res = await api.post(
-        "/api/categories",
-        { name },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCategoryList((prev) => [res.data, ...prev]);
+    const fromProducts = new Set(products.map((p) …180 tokens truncated…yList((prev) => [res.data, ...prev]);
       setCategoryName("");
     } catch (err) {
       setCategoryError(err?.message || t({ ar: "فشل إضافة الفئة", he: "הוספת קטגוריה נכשלה" }));
@@ -346,6 +329,7 @@ export default function AdminProducts() {
       }
     >
         <div className="px-4 sm:px-6">
+          {products.some((p) => p.canManagePrivateProducts) && <OwnerPurchaseImport onSaved={(results) => setProducts((previous) => previous.map((product) => { const row = results.find((item) => item.sku === product.sku && item.status === "saved"); return row ? { ...product, ownerInfo: row.ownerInfo, automationLocked: row.automationLocked } : product; }))} />}
           {/* חיפוש */}
           <div className="mt-4 relative">
             <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-3 text-white/40 pointer-events-none" />
