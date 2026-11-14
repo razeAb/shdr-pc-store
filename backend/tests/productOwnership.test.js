@@ -11,7 +11,7 @@ process.env.JWT_SECRET = 'local-test-only-secret';
 process.env.PRODUCT_OWNER_EMAIL = 'owner@example.test';
 const id = '507f1f77bcf86cd799439011';
 let product;
-const query = value => ({ select() { return this; }, lean: async () => value, then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } });
+const query = value => ({ select() { return this; }, sort() { return this; }, lean: async () => value, then(resolve, reject) { return Promise.resolve(value).then(resolve, reject); } });
 User.findById = userId => query({ _id: userId, role: 'admin', email: userId === 'owner' ? 'owner@example.test' : 'other@example.test' });
 Product.findById = () => query(structuredClone(product));
 Product.find = (filter) => query(filter.sku?.$in?.includes(product.sku) ? [{ _id: id, sku: product.sku }] : []);
@@ -88,5 +88,27 @@ test('owner-only data, atomic content lock, and independent stock updates', asyn
   assert.equal(product.title, 'Original');
   assert.equal(product.inStock, true);
 
+});
+test('storefront costs require the designated owner and never enter the public catalog', async () => {
+  product = { _id: id, title: 'Example', price: 100, isActive: true, ownerInfo: { supplier: 'Private supplier', purchaseCost: 60, costIncludesVat: true }, automationLocked: true };
+  let filter;
+  Product.find = input => { filter = input; return query([structuredClone(product)]); };
+  assert.equal((await request('/owner/storefront', undefined, null, 'GET')).status, 401);
+  assert.equal((await request('/owner/storefront', undefined, 'other', 'GET')).status, 403);
+  const customer = await fetch(url + '/owner/storefront', { headers: { Authorization: `Bearer ${signToken({ userId: 'customer', role: 'user' })}` } });
+  assert.equal(customer.status, 403);
+  const response = await fetch(url + '/owner/storefront', { headers: { Authorization: `Bearer ${signToken({ userId: 'owner', role: 'admin' })}` } });
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('cache-control'), /no-store/);
+  assert.deepEqual(await response.json(), { costs: [{ productId: id, purchaseCost: 60, costIncludesVat: true }] });
+  assert.deepEqual(filter, { isActive: true });
+  product.ownerInfo.purchaseCost = 0;
+  assert.equal((await request('/owner/storefront', undefined, 'owner', 'GET')).body.costs[0].purchaseCost, 0);
+  const publicResult = await request('/', undefined, null, 'GET');
+  assert.equal(publicResult.status, 200);
+  assert.equal(JSON.stringify(publicResult.body).includes('purchaseCost'), false);
+  assert.equal(JSON.stringify(publicResult.body).includes('Private supplier'), false);
+  delete product.ownerInfo;
+  assert.deepEqual((await request('/owner/storefront', undefined, 'owner', 'GET')).body.costs[0], { productId: id, purchaseCost: null, costIncludesVat: false });
 });
 test.after(() => server.close());

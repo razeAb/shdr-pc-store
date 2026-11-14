@@ -35,6 +35,7 @@ export default function Login() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("shdr-role", data?.user?.role || "user");
       localStorage.setItem("shdr-auth-time", String(Date.now()));
+      window.dispatchEvent(new Event("shdr-auth-changed"));
       setStatus({ type: "success", message: t({ en: "Signed in successfully.", he: "התחברת בהצלחה." }) });
       form?.reset();
       if (data?.user?.role === "admin") {

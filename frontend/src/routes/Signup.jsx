@@ -43,6 +43,7 @@ export default function Signup() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("shdr-role", data?.user?.role || "user");
       localStorage.setItem("shdr-auth-time", String(Date.now()));
+      window.dispatchEvent(new Event("shdr-auth-changed"));
       setStatus({ type: "success", message: t({ en: "Account created successfully.", he: "החשבון נוצר בהצלחה." }) });
       form?.reset();
     } catch (error) {

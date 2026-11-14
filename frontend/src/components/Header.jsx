@@ -6,6 +6,7 @@ import MobileNav from "./MobileNav.jsx";
 import { useProducts } from "../context/ProductsContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
 import CartIcon from "./CartIcon.jsx";
+import { OwnerCostToggle } from "./OwnerPurchaseCost.jsx";
 
 export default function Header({ cartCount = 0, onCartOpen }) {
   const { products } = useProducts();
@@ -24,6 +25,7 @@ export default function Header({ cartCount = 0, onCartOpen }) {
       localStorage.removeItem("token");
       localStorage.removeItem("shdr-role");
       localStorage.removeItem("shdr-auth-time");
+      window.dispatchEvent(new Event("shdr-auth-changed"));
       navigate("/login");
       return;
     }
@@ -94,6 +96,7 @@ export default function Header({ cartCount = 0, onCartOpen }) {
         </div>
       </div>
       <div className="header-nav-row">
+        <OwnerCostToggle />
         <CategoryNav />
       </div>
     </header>

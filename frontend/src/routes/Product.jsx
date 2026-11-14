@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext.jsx";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
 import ProductCard from "../components/ProductCard.jsx";
+import OwnerPurchaseCost from "../components/OwnerPurchaseCost.jsx";
 import {
   PRICE_COMING_SOON,
   PRODUCT_TYPE_LABELS,
@@ -171,6 +172,7 @@ export default function Product() {
             )}
           </div>
 
+          <OwnerPurchaseCost productId={product.id} />
           <button type="button" className="primary-button product-detail__add" onClick={() => handleAdd()} disabled={!isPriced || product.inStock === false}>
             <ShoppingBag size={18} aria-hidden="true" />
             {t(product.inStock === false ? { en: "Out of stock", he: "אזל מהמלאי" } : { en: "Add to cart", he: "הוסף לעגלה" })}

@@ -2,6 +2,7 @@ import { ShoppingBag, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../utils/format.js";
 import { useLang } from "../context/LangContext.jsx";
+import OwnerPurchaseCost from "./OwnerPurchaseCost.jsx";
 import { ATTRIBUTE_GROUPS, ATTRIBUTE_VALUE_LABELS, PRICE_COMING_SOON, getProductLabel, getShortTitle, hasPrice } from "../utils/products.js";
 
 export default function ProductCard({ product, onAdd, badge, showDetails = false }) {
@@ -42,6 +43,7 @@ export default function ProductCard({ product, onAdd, badge, showDetails = false
           )}
         </div>
         {showDetails && isPriced && hasDiscount && <p className="product-card__saving">{t({ en: "Save", he: "חיסכון של" })} {formatCurrency(product.price - product.salePrice, "ILS")}</p>}
+        <OwnerPurchaseCost productId={product.id} />
         {product.rating ? (
           <p className="product-rating"><Star size={13} fill="currentColor" aria-hidden="true" />
             {t({ en: `Rated ${product.rating} out of 5`, he: `דירוג ${product.rating} מתוך 5` })}

@@ -260,6 +260,18 @@ productRouter.get("/owner/access", requireAuth, requireAdmin, resolveProductOwne
   res.json({ canManagePrivateProducts: req.isProductOwner });
 });
 
+// A separate owner-only response; public catalog products never contain costs.
+productRouter.get("/owner/storefront", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
+  try {
+    const products = await Product.find({ isActive: true }).select({ _id: 1, ownerInfo: 1 }).lean();
+    res.json({ costs: products.map((product) => ({
+      productId: String(product._id),
+      purchaseCost: product.ownerInfo?.purchaseCost ?? null,
+      costIncludesVat: product.ownerInfo?.costIncludesVat === true,
+    })) });
+  } catch (error) { next(error); }
+});
+
 productRouter.get("/owner/:id", requireAuth, requireAdmin, resolveProductOwner, requireProductOwner, async (req, res, next) => {
   try {
     res.set("Cache-Control", "no-store");

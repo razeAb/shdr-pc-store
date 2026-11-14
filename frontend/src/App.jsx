@@ -13,6 +13,7 @@ import Login from "./routes/Login.jsx";
 import Signup from "./routes/Signup.jsx";
 import AdminApp from "./admin/AdminApp.jsx";
 import { ProductsProvider } from "./context/ProductsContext.jsx";
+import { OwnerCostsProvider } from "./context/OwnerCostsContext.jsx";
 import { useLang } from "./context/LangContext.jsx";
 import CartDrawer from "./components/CartDrawer.jsx";
 import { useCart } from "./context/CartContext.jsx";
@@ -67,7 +68,7 @@ export default function App() {
 
   return (
     <>
-      <ProductsProvider>
+      <OwnerCostsProvider><ProductsProvider>
         <Routes>
           <Route element={<AppLayout onToast={showToast} />}>
             <Route path="/" element={<Home />} />
@@ -81,7 +82,7 @@ export default function App() {
           </Route>
           <Route path="/admin/*" element={<AdminApp />} />
         </Routes>
-      </ProductsProvider>
+      </ProductsProvider></OwnerCostsProvider>
       <Toast message={toast.message} isVisible={toast.isVisible} />
     </>
   );

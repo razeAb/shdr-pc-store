@@ -28,6 +28,7 @@ export default function SideMenu({ logoSrc, brand = "חנות SHDR", onClose, cl
     localStorage.removeItem("shdr-token");
     localStorage.removeItem("shdr-role");
     localStorage.removeItem("shdr-auth-time");
+    window.dispatchEvent(new Event("shdr-auth-changed"));
     onClose?.();
     navigate("/login", { replace: true });
   };
