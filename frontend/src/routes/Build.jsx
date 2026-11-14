@@ -2,6 +2,7 @@ import { Link, useOutletContext, useSearchParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, ChevronLeft, ChevronRight, Cpu, RotateCcw, ShoppingBag, X, Zap } from "lucide-react";
 import { useProducts } from "../context/ProductsContext.jsx";
+import { OwnerCostToggle, OwnerBuildCost } from "../components/OwnerPurchaseCost.jsx";
 import { useCart } from "../context/CartContext.jsx";
 import { useLang } from "../context/LangContext.jsx";
 import { formatCurrency } from "../utils/format.js";
@@ -353,6 +354,9 @@ export default function Build() {
             <span>{t({ en: "Total", he: "סה\"כ" })}</span>
             <strong>{formatCurrency(total, "ILS")}</strong>
           </div>
+
+          <OwnerCostToggle />
+          <OwnerBuildCost parts={Object.values(parts)} />
 
           {missingSteps.length > 0 ? (
             <p className="build-summary__status">

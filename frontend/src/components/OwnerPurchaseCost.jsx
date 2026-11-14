@@ -29,3 +29,23 @@ export default function OwnerPurchaseCost({ productId }) {
     </> : t({ he: "לא הוזנה", en: "Not entered" })}
   </small>;
 }
+
+// Private totals are derived in memory only and never saved in the cart/build.
+export function OwnerBuildCost({ parts }) {
+  const { visible, costs } = useOwnerCosts();
+  const { t } = useLang();
+  if (!visible || parts.length === 0) return null;
+  const rows = parts.map(part => costs[part.id]);
+  const missing = rows.filter(row => !Number.isFinite(row?.purchaseCost)).length;
+  const known = rows.filter(row => Number.isFinite(row?.purchaseCost));
+  const included = known.filter(row => row.costIncludesVat);
+  const excluded = known.filter(row => !row.costIncludesVat);
+  const sum = items => items.reduce((total, row) => total + row.purchaseCost, 0);
+  return <div className="owner-purchase-cost" role="status">
+    <strong>{t({ he: "עלות המחשב שלי", en: "My build cost" })}</strong>
+    {missing > 0 && <div>{t({ he: `חסרה עלות ל־${missing} רכיבים — הסכומים חלקיים`, en: `Cost missing for ${missing} parts — partial amounts` })}</div>}
+    {included.length > 0 && <div>{formatCurrency(sum(included), "ILS")} · {t({ he: "כולל מע״מ", en: "VAT included" })}</div>}
+    {excluded.length > 0 && <div>{formatCurrency(sum(excluded), "ILS")} · {t({ he: "לפני מע״מ", en: "Before VAT" })}</div>}
+    {included.length > 0 && excluded.length > 0 && <div>{t({ he: "העלויות מוצגות בנפרד לפי בסיס המע״מ", en: "Costs shown separately by VAT basis" })}</div>}
+  </div>;
+}
